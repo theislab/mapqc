@@ -1,0 +1,31 @@
+{
+    "template": "https://github.com/scverse/cookiecutter-scverse",
+    "commit": "cd3e0bed897b54505eef7a1b2d5cd2c3543f5833",
+    "checkout": null,
+    "context": {
+        "cookiecutter": {
+            "project_name": "mapqc",
+            "package_name": "mapqc",
+            "project_description": "A metric for the evaluation of single-cell query-to-reference mappings",
+            "author_full_name": "Lisa Sikkema",
+            "author_email": "lisasikkema4@gmail.com",
+            "github_user": "theislab",
+            "github_repo": "mapqc",
+            "license": "MIT License",
+            "ide_integration": false,
+            "_copy_without_render": [
+                ".github/workflows/build.yaml",
+                ".github/workflows/test.yaml",
+                "docs/_templates/autosummary/**.rst"
+            ],
+            "_render_devdocs": false,
+            "_jinja2_env_vars": {
+                "lstrip_blocks": true,
+                "trim_blocks": true
+            },
+            "_template": "https://github.com/scverse/cookiecutter-scverse",
+            "_commit": "cd3e0bed897b54505eef7a1b2d5cd2c3543f5833"
+        }
+    },
+    "directory": null
+}
