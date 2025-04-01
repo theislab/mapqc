@@ -2,59 +2,169 @@ import numpy as np
 import pandas as pd
 
 
-def check_n_ref_samples(
-    sample_set: list,
-    sample_info: pd.DataFrame,
-    r_q_key: str,
-    r_cat: str,
-    min_n_samples_r: int,
-    exclude_same_study: bool,
-    study_key: str = None,
-) -> tuple[bool, str]:
-    """Check if sufficient reference samples are present in a given sample set.
-
-    Checks, for a given set of samples (present in a specific neighborhood with
-    sufficient n_cells), if it includes enough reference samples given the
-    pre-set filtering conditions. If samples from the same study are not allowed,
-    these are excluded from the count.
+def filter_and_get_min_k_query(
+    cell_df: pd.DataFrame,
+    ref_q_key: str,
+    sample_key: str,
+    q_cat: str,
+    k_min: int,
+    adaptive_k_margin: float,
+    min_n_cells: int,
+) -> tuple[bool, int | None, str]:
+    """Check if neighborhood has enough query cells for any query sample.
 
     Parameters
     ----------
-    sample_set : list
-        List of sample IDs present in a specific neighborhood with sufficient n_cells.
-    sample_info : pd.DataFrame
-        DataFrame with sample information of each sample's study, and reference/query
-        origin.
-    r_q_key : str
-        Key in sample_info that indicates the reference/query category of each sample.
+    cell_df : pd.DataFrame
+        Dataframe with cells ordered by distance to the center cell, as well as information
+        about sample, and reference/query category..
+    ref_q_key : str
+        Key in cell_df that indicates the reference/query category of each cell.
+    sample_key : str
+        Key in cell_df that indicates each cell's sample identifier.
+    q_cat : str
+        Query category in ref_q_key.
+    k_min : int
+        Minimum number of neighbors.
+    adaptive_k_margin : float
+        Margin to add (as fraction) to the minimum number of neighbors at which
+        all filter conditions are met, if this number if larger than k_min.
+    min_n_cells : int
+        Minimum number cells per sample.
+
+    Returns
+    -------
+    (filter_pass, min_k_out, filter_info) : tuple[bool, int | None, str]
+        Tuple of: 1) boolean specifying whether the neighborhood passed the min_n_cells
+        filter for at least one query sample, 2) an integer with the minimum number of neighbors
+        if filter was passed, otherwise None, and 3) a string with the reason for the filter
+        pass/fail.
+    """
+    # Set all reference cells to None
+    samples_q = [s if r_q == q_cat else None for s, r_q in zip(cell_df[sample_key], cell_df[ref_q_key], strict=False)]
+    # Get nth occurrence of each query sample
+    sample_nth_occ_idc = _get_idc_nth_instances(pd.Categorical(samples_q), min_n_cells)
+    # if no sample has enough cells:
+    if len(sample_nth_occ_idc) == 0:
+        return (False, None, "not enough query cells")
+    # Get lowest index (i.e. first query sample) that suffices the min_n_cells condition
+    # Note that we add a +1 because of python indexing: 1st instance means
+    # second observation, i.e. k=2 neighbors needed
+    min_k_query = min(sample_nth_occ_idc.values) + 1  #
+    if min_k_query < k_min:
+        return (True, k_min, "pass")
+    else:
+        # note that if we adapt the k, we add a margin to not limit the neighborhood
+        # size EXACTLY at the point where we fulfill conditions, as I think this
+        # could create some weird biases.
+        min_k_incl_margin = min_k_query + min_k_query * adaptive_k_margin
+        return (
+            True,
+            np.ceil(min_k_incl_margin).astype(int),
+            "pass",
+        )  # round up and make into integer
+
+
+def filter_and_get_min_k_ref(
+    cell_df: pd.DataFrame,
+    ref_q_key: str,
+    sample_key: str,
+    r_cat: str,
+    k_min: int,
+    min_n_cells: int,
+    min_n_samples_r: int,
+    adapt_k: bool,
+    exclude_same_study: bool,
+    sample_df: pd.DataFrame = None,
+    adaptive_k_margin: float = None,
+    study_key: str = None,
+) -> tuple[bool, int | None, str]:
+    """Checks if reference has enough samples with enough cells.
+
+    Parameters
+    ----------
+    cell_df : pd.DataFrame
+        Dataframe with cells ordered by distance to the center cell, as well as information
+        about sample, and reference/query category. Note that cell_df should be of row size k_min
+        if no adaptive k is used, and of size (max_k / (1 + adaptive_k_margin)) if adaptive k
+        is used.
+    ref_q_key : str
+        Key in cell_df that indicates the reference/query category of each cell.
+    sample_key : str
+        Key in cell_df that indicates each cell's sample identifier.
     r_cat : str
-        Reference category in r_q_key column.
+        Reference category in cell_df's ref_q_key column.
+    k_min : int
+        Minimum number of neighbors.
+    min_n_cells : int
+        Minimum number cells per sample.
     min_n_samples_r : int
-        Minimum number of reference samples required per neighborhood.
+        Minimum number of reference samples per neighborhood.
+    adapt_k : bool
+        Whether to adapt the number of neighbors if filtering conditions are not met.
     exclude_same_study : bool
-        If True, exclude samples from the same study when counting the number of
-        reference samples.
+        Whether to exclude same-study pairs when counting the number of reference
+        samples (see code for details on how number of pairs is used to check
+        if filtering conditions are met.)
+    sample_df : pd.DataFrame, optional
+        Dataframe with sample information of each sample's study. Order does not matter.
+        Only needed if exclude_same_study is True.
+    adaptive_k_margin : float, optional
+        Margin to add (as fraction) to the minimum number of neighbors at which
+        all filter conditions are met, if this number if larger than k_min. Note
+        that this argument has to be set if adapt_k is True.
     study_key : str, optional
-        Key in sample_info that indicates the study of each sample. Only needed if
+        Key in sample_df that indicates the study of each sample. Only needed if
         exclude_same_study is True.
 
     Returns
     -------
-    tuple[bool, str]
-        A tuple with a boolean indicating if the number of reference samples is sufficient,
-        (i.e. if the neighborhood passed the filtering), and a string with the reason for
-        the result.
+    (filter_pass, min_k_out, filter_info) : tuple[bool, int | None, str]
+        Tuple of: 1) boolean specifying whether the neighborhood passed the min_n_cells
+        and min_n_samples_r conditions, 2) an integer with the minimum number of neighbors
+        if filter was passed, otherwise None, and 3) a string with the reason for the filter
+        pass/fail.
     """
-    # get study of each reference sample
-    sample_set_r = [s for s in sample_set if sample_info.loc[s, r_q_key] == r_cat]
-    if len(sample_set_r) < min_n_samples_r:
-        return (False, "too few reference samples")
-    elif not exclude_same_study:
-        # if enough reference samples, and study exclusion not required:
-        return (True, "pass")
+    # Get the sample for each cell, while setting query cells to None
+    cell_samples_r = [
+        s if r_q == r_cat else None for s, r_q in zip(cell_df[sample_key], cell_df[ref_q_key], strict=False)
+    ]
+    # Convert to categorical for easier processing
+    cell_samples_r = pd.Categorical(cell_samples_r)
+    # if no cells from the reference, filter is not passed
+    if pd.isnull(cell_samples_r).all():
+        return (False, None, "not enough reference samples")
+    # get nth occurrence of each reference sample
+    # (Samples are now ordered by closest to the center cell
+    # (based on nth occurrence) to furthest, samples with
+    # too few cells are excluded)
+    sample_nth_occ_idc = _get_idc_nth_instances(pd.Categorical(cell_samples_r), min_n_cells)
+    if not exclude_same_study:
+        # if fewer than min_n_samples_r have at least min_n_cells, filter is not passed
+        if len(sample_nth_occ_idc) < min_n_samples_r:
+            return (False, None, "not enough reference samples")
+        else:
+            # subtract 1 from min_n_samples_r because of python indexing
+            # add 1 also because of python indexing: we want k neighbors,
+            # which corresponds to (k-1)th index
+            min_k_ref = sample_nth_occ_idc.values[min_n_samples_r - 1] + 1
+            if min_k_ref <= k_min:
+                return (True, k_min, "pass")
+            else:
+                min_k_incl_margin = min_k_ref + min_k_ref * adaptive_k_margin
+                return (True, np.ceil(min_k_incl_margin).astype(int), "pass")
     else:
-        # if we want to exclude same-study pairs:
-        sample_studies_r = sample_info.loc[sample_set_r, study_key]
+        # if we want to exclude same-study pairs
+        # order the sample studies by the order at which their nth cell
+        # occurs in the neighborhood (note that these are ordered,
+        # and that samples with too few cells have already been excluded)
+        samples_r = sample_nth_occ_idc.index
+        # if the total of reference samples does not even satisfy min_n_samples_r,
+        # we can already stop here:
+        if len(samples_r) < min_n_samples_r:
+            return (False, None, "not enough reference samples")
+        # get the study for each reference sample
+        sample_studies_r = sample_df.loc[samples_r, study_key]
         # a minimum number of reference samples can be seen as a minimum
         # number of pairwise comparisons. If min_n_samples_r is n, then
         # we expect n**2 comparisons, or (n**2) - n comparisons, if we
@@ -63,15 +173,86 @@ def check_n_ref_samples(
         # to column x), we expect ((n**2) - n) / 2 pairs.
         # We can now calculate the minimum number of pairs, excluding pairs
         # from the same study, and see if we have enough pairs left
-        min_n_pairs = ((min_n_samples_r**2) - min_n_samples_r) / 2
+        # Note that if min_n_samples_r is 1, we set min_n_pairs to 1 manually,
+        # as the calculation would result in a 0
+        if min_n_samples_r == 1:
+            min_n_pairs = 1
+        else:
+            min_n_pairs = ((min_n_samples_r**2) - min_n_samples_r) / 2
         # create a matrix specifying for our samples if they come
         # from the same study or not
         diff_study = _create_difference_matrix(sample_studies_r)
-        n_valid_pairs = diff_study.sum() / 2  # divide by 2 because we count each pair twice
-        if n_valid_pairs < min_n_pairs:
-            return (False, "too few reference samples from different batches")
+        # check, starting at the min_n_samples_r-th sample, how many
+        # pairs are left after filtering out same-study pairs
+        # use a mask to get only the upper triangular part of the matrix
+        # (i.e. don't include pairs twice, the matrix is symmetric, and
+        # don't include pairs of the same (i,i), i.e. the diagonal)
+        mask = np.triu(np.ones_like(diff_study), k=1)
+        # if we do not want to adapt k, we just check the total number of pairs:
+        if not adapt_k:
+            n_valid_pairs = (diff_study * mask).sum()
+            if n_valid_pairs < min_n_pairs:
+                return (
+                    False,
+                    None,
+                    "not enough reference samples from different studies",
+                )
+            else:
+                return (True, k_min, "pass")
+        # if we do want to adapt k, we want to check at which point we have a large
+        # enough neighborhood (i.e. at which number of samples)
+        # We here calculate the number of valid pairs, increasing the number of
+        # samples by one each time.
+        n_valid_pair_cumsum_per_sample = np.cumsum((diff_study * mask).sum(axis=0))
+        # check at which point (at how many samples) we have enough pairs:
+        passing_samples_idc = np.where(n_valid_pair_cumsum_per_sample >= min_n_pairs)[0]
+        # if for now sample we have enough pairs, the filter is not passed:
+        if len(passing_samples_idc) == 0:
+            return (False, None, "not enough reference samples from different studies")
         else:
-            return (True, "pass")
+            # get the minimum number of neighbors that satisfies the filter
+            first_passing_sample = samples_r[passing_samples_idc[0]]
+            # check which k comes with that sample (i.e. at which index that
+            # specific sample has its min_n_cells-th occurrence)
+            min_k_ref = sample_nth_occ_idc.loc[first_passing_sample] + 1
+            # if that k is smaller than k_min, we return k_min:
+            if min_k_ref <= k_min:
+                return (True, k_min, "pass")
+            # otherwise, we take the needed k plus an added margin:
+            else:
+                min_k_ref_incl_margin = min_k_ref + min_k_ref * adaptive_k_margin
+                return (True, np.ceil(min_k_ref_incl_margin).astype(int), "pass")
+
+
+def _get_idc_nth_instances(seq: pd.Categorical, n: int) -> pd.Series:
+    """Get indices of the nth occurrence of each category in a sequence.
+
+    For each unique value (category) in a sequence, get the index at which
+    the category occurs for the nth time. If a category has fewer than n
+    instances, it is excluded from the output.
+
+    Parameters
+    ----------
+    seq: pd.Categorical
+        The sequence to get the indices from.
+    n: int
+        The nth instance to get the index of.
+
+    Returns
+    -------
+    idc: pd.Series
+        Sorted series (from small to large) with categories as index, indices (in
+        the form of integers) of their nth occurrence as values. Categories with
+        fewer than n occurrences are excluded.
+    """
+    cats = seq.categories
+    idc = pd.Series(index=cats, data=np.nan)
+    for cat in cats:
+        cat_positions = np.where(seq == cat)[0]
+        if len(cat_positions) >= n:
+            idc.loc[cat] = int(cat_positions[n - 1])  # -1 because of python indexing: nth instance is at position n-1
+    idc = idc.dropna().sort_values(ascending=True)
+    return idc.astype(int)
 
 
 def _create_difference_matrix(lst):
