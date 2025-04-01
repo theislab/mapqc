@@ -11,7 +11,7 @@ def filter_and_get_min_k_query(
     adaptive_k_margin: float,
     min_n_cells: int,
 ) -> tuple[bool, int | None, str]:
-    """Check if neighborhood has enough query cells for any query sample.
+    """Checks if neighborhood has enough query cells for any query sample.
 
     Parameters
     ----------
@@ -79,7 +79,7 @@ def filter_and_get_min_k_ref(
     adaptive_k_margin: float = None,
     study_key: str = None,
 ) -> tuple[bool, int | None, str]:
-    """Checks if reference has enough samples with enough cells.
+    """Checks if neighborhood has enough reference samples with enough cells.
 
     Parameters
     ----------
