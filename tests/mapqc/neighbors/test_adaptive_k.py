@@ -27,7 +27,7 @@ def test_filter_and_get_adaptive_k(cell_df_small):
         min_n_cells=4,
         min_n_samples_r=1,
         k_min=10,
-        k_max=10,
+        adapt_k=False,
         exclude_same_study=False,
     ) == (False, None, "not enough query cells")
     # now try out passing query, but failing reference
@@ -41,11 +41,14 @@ def test_filter_and_get_adaptive_k(cell_df_small):
         min_n_cells=2,
         min_n_samples_r=1,
         k_min=10,
-        k_max=10,
+        adapt_k=False,
         exclude_same_study=True,
         study_key="paper",
     ) == (False, None, "not enough reference samples from different studies")
-    # now try out passing both
+    # now try out passing both, using adaptive k. Set k_min to 5,
+    # and min_n_samples_r to 2, while setting exclude_same_study to False.
+    # It would need 9 cells, plus margin 0.1, is 9.9, rounded up to 10
+    # cells, so output k should be 10.
     # (include same study pairs)
     assert filter_and_get_adaptive_k(
         cell_df=cell_df_small,
@@ -54,9 +57,10 @@ def test_filter_and_get_adaptive_k(cell_df_small):
         q_cat="qu",
         r_cat="re",
         min_n_cells=2,
-        min_n_samples_r=1,
-        k_min=10,
-        k_max=10,
+        min_n_samples_r=2,
+        k_min=5,
+        adapt_k=True,
+        adaptive_k_margin=0.1,
         exclude_same_study=False,
         study_key="paper",
     ) == (True, 10, "pass")

@@ -12,7 +12,7 @@ def filter_and_get_adaptive_k(
     min_n_cells: int,
     min_n_samples_r: int,
     k_min: int,
-    k_max: int,
+    adapt_k: bool,
     exclude_same_study: bool,
     adaptive_k_margin: float = None,
     study_key: str = None,
@@ -39,8 +39,12 @@ def filter_and_get_adaptive_k(
         with at least min_n_cells).
     k_min : int
         Minimum number of neighbors for a neighborhood.
-    k_max : int
-        Maximum number of neighbors (this will be higher than k_min if an adaptive k is used).
+    adapt_k : bool
+        Whether to adapt the number of neighbors if filtering conditions are not met.
+    exclude_same_study : bool
+        Whether to exclude same-study pairs when counting the number of reference
+        samples (see code for details on how number of pairs is used to check
+        if filtering conditions are met.)
     adaptive_k_margin : float, optional
         Margin to add (as fraction) to the minimum number of neighbors at which
         all filter conditions are met, if this number if larger than k_min. Note
@@ -57,10 +61,6 @@ def filter_and_get_adaptive_k(
         if filter was passed, otherwise None; 3) a string with the reason for the filter
         pass/fail.
     """
-    if k_max == k_min:
-        adapt_k = False
-    else:
-        adapt_k = True
     if exclude_same_study:
         sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first", study_key: "first"})
     else:
