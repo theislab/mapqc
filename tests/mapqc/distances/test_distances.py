@@ -1,10 +1,52 @@
 import numpy as np
+import pandas as pd
 import pytest
 
-from mapqc.distances.distances import distance_between_cell_sets
+from mapqc.distances.distances import (
+    _distance_between_cell_sets,
+    pairwise_sample_distances,
+)
 
 
-def test_pairwise_euclidean_simple():
+@pytest.fixture
+def cell_info():
+    return pd.DataFrame(
+        data={
+            "s": ["s1", "s1", "s3", "s2", "s2", "s2", "s4", "s4", "s4", "s5", "s5"],
+            "re_qu": [
+                "re",
+                "re",
+                "qu",
+                "qu",
+                "qu",
+                "qu",
+                "re",
+                "re",
+                "re",
+                "re",
+                "re",
+            ],
+            "paper": ["a", "a", "b", "b", "b", "b", "a", "a", "a", "c", "c"],
+            "emb0": [0, 0, 1, 0, 0, 0, -1, -1, -1, 0, 0],
+            "emb1": [0, 0, 0, 2, 2, 2, 0, 0, 0, -2, -1],
+        },
+        index=[
+            "c1",
+            "c2",
+            "c3",
+            "c4",
+            "c5",
+            "c6",
+            "c7",
+            "c8",
+            "c9",
+            "c10",
+            "c11",
+        ],
+    )
+
+
+def test_distance_between_cell_sets_pairwise_euclidean_simple():
     """Test pairwise euclidean distance with simple 2D points"""
     cell_set_1 = np.array(
         [
@@ -18,7 +60,7 @@ def test_pairwise_euclidean_simple():
     )
     cell_set_2 = np.array([[0, 0]])
 
-    distance = distance_between_cell_sets(cell_set_1, cell_set_2, distance_metric="pairwise_euclidean")
+    distance = _distance_between_cell_sets(cell_set_1, cell_set_2, distance_metric="pairwise_euclidean")
 
     # The mean distance between all pairs should be:
     # (0 + √(2+2) + √(8+8)) / 3 = (0 + 2 + 4) / 3 = 2
@@ -26,7 +68,7 @@ def test_pairwise_euclidean_simple():
     np.testing.assert_almost_equal(distance, expected, decimal=6)
 
 
-def test_energy_distance_simple():
+def test_distance_between_cell_sets_energy_distance_simple():
     """Test energy distance with simple 2D points"""
     cell_set_1 = np.array(
         [
@@ -40,7 +82,7 @@ def test_energy_distance_simple():
     )
     cell_set_2 = np.array([[0, 0], [0, 0]])
 
-    distance = distance_between_cell_sets(cell_set_1, cell_set_2, distance_metric="energy_distance")
+    distance = _distance_between_cell_sets(cell_set_1, cell_set_2, distance_metric="energy_distance")
 
     # Calculate expected components:
     # sigma: mean distance within each set, excluding distances to self
@@ -59,7 +101,7 @@ def test_energy_distance_simple():
     np.testing.assert_almost_equal(distance, expected, decimal=6)
 
 
-def test_with_precomputed_distances():
+def test_distance_between_cell_sets_with_precomputed_distances():
     """Test that using precomputed distances gives same result"""
     cell_set_1 = np.array(
         [
@@ -76,16 +118,19 @@ def test_with_precomputed_distances():
     # Precompute distances
     precomputed = np.array([[0], [2], [4]])
 
-    d1 = distance_between_cell_sets(cell_set_1, cell_set_2, distance_metric="pairwise_euclidean")
+    d1 = _distance_between_cell_sets(cell_set_1, cell_set_2, distance_metric="pairwise_euclidean")
 
-    d2 = distance_between_cell_sets(
-        cell_set_1, cell_set_2, distance_metric="pairwise_euclidean", precomputed_distance_matrix=precomputed
+    d2 = _distance_between_cell_sets(
+        cell_set_1,
+        cell_set_2,
+        distance_metric="pairwise_euclidean",
+        precomputed_distance_matrix=precomputed,
     )
 
     np.testing.assert_almost_equal(d1, d2, decimal=6)
 
 
-def test_invalid_precomputed_shape():
+def test_distance_between_cell_sets_invalid_precomputed_shape():
     """Test that wrong shape of precomputed distances raises error"""
     cell_set_1 = np.array([[0, 0], [1, 1]])
     cell_set_2 = np.array([[2, 2], [3, 3]])
@@ -93,4 +138,113 @@ def test_invalid_precomputed_shape():
     wrong_shape = np.zeros((3, 2))  # Wrong shape
 
     with pytest.raises(ValueError):
-        distance_between_cell_sets(cell_set_1, cell_set_2, precomputed_distance_matrix=wrong_shape)
+        _distance_between_cell_sets(cell_set_1, cell_set_2, precomputed_distance_matrix=wrong_shape)
+
+
+def test_pairwise_sample_distances_simple(cell_info):
+    """Test pairwise sample distances with simple 2D points"""
+    # set samples all to larger set than present in cell_info
+    samples_r_all = [
+        "s0",
+        "s1",
+        "s5",
+        "s4",
+    ]  # ordered non-alphabetically, and in different order than cell_df, to make sure this doesn't give problems
+    samples_q_all = ["s2", "s3", "s6"]
+    min_n_cells = 2
+    samples_r = [
+        s for s in cell_info["s"] if ((cell_info["s"].value_counts()[s] >= min_n_cells) and (s in samples_r_all))
+    ]
+    samples_q = [
+        s for s in cell_info["s"] if ((cell_info["s"].value_counts()[s] >= min_n_cells) and (s in samples_q_all))
+    ]
+    # calculate simplest pairwise distances (i.e. also keep
+    # pairs from same study)
+    test_out = pairwise_sample_distances(
+        emb=cell_info.loc[:, ["emb0", "emb1"]].values,
+        obs=cell_info,
+        samples_r_all=samples_r_all,
+        samples_q_all=samples_q_all,
+        sample_key="s",
+        min_n_cells=min_n_cells,
+        exclude_same_study=False,
+    )
+    # expectations:
+    # first calculate pairwise distances semi-manually:
+    dists_manual = {}
+    for s1 in samples_r + samples_q:
+        for s2 in samples_r + samples_q:
+            dists_manual[(s1, s2)] = _distance_between_cell_sets(
+                cell_set_1=cell_info.loc[cell_info["s"] == s1, ["emb0", "emb1"]].values,
+                cell_set_2=cell_info.loc[cell_info["s"] == s2, ["emb0", "emb1"]].values,
+            )
+    # expectations are:
+    # samples with all nans: s0, s6 (both not in nhood),
+    # s3 (not enough cells)
+    # lower triangle should be all nans
+    # our rows are samples_r_all, our columns
+    # samples_r_all + samples_q_all, so we expect the following:
+    expected_out = pd.DataFrame(
+        data={
+            "s0": [np.nan, np.nan, np.nan, np.nan],  # missing sample
+            "s1": [
+                np.nan,
+                np.nan,
+                np.nan,
+                np.nan,
+            ],  # first one because pair with s0, second as pair with self (henceforth included in "lower traingle"), rest as lower triangle
+            "s5": [
+                np.nan,
+                dists_manual[("s1", "s5")],
+                np.nan,
+                np.nan,
+            ],  # nans due to missing sample (s0) and lower triangle
+            "s4": [
+                np.nan,
+                dists_manual[("s1", "s4")],
+                dists_manual[("s4", "s5")],
+                np.nan,
+            ],
+            "s2": [
+                np.nan,
+                dists_manual[("s1", "s2")],
+                dists_manual[("s2", "s5")],
+                dists_manual[("s2", "s4")],
+            ],
+            "s3": [np.nan, np.nan, np.nan, np.nan],  # s3 not enough cells
+            "s6": [np.nan, np.nan, np.nan, np.nan],  # missing sample
+        },
+        index=samples_r_all,
+    )
+    # check that the two are the same
+    np.testing.assert_almost_equal(test_out, expected_out.values)
+    # now test with exclude_same_study=True
+    sample_info = cell_info.groupby("s").agg({"paper": "first"})
+    test_out_2 = pairwise_sample_distances(
+        emb=cell_info.loc[:, ["emb0", "emb1"]].values,
+        obs=cell_info,
+        samples_r_all=samples_r_all,
+        samples_q_all=samples_q_all,
+        sample_key="s",
+        min_n_cells=min_n_cells,
+        exclude_same_study=True,
+        study_key="paper",
+        sample_df=sample_info,
+    )
+    # expectations:
+    # first copy original expected out:
+    expected_out_2 = expected_out.copy()
+    # then set all distances between samples of same study to nan:
+    # note that this is only relevant for reference samples,
+    # as query samples are only compared to reference anyway.
+    # Also, we only need to check for samples in the nhood,
+    # as the rest was already set to nan.
+    for s1 in samples_r:
+        for s2 in samples_r:
+            if sample_info.loc[s1, "paper"] == sample_info.loc[s2, "paper"]:
+                expected_out_2.loc[s1, s2] = np.nan
+    print(expected_out)
+    print(expected_out_2)
+    print(pd.DataFrame(data=test_out_2, index=samples_r_all, columns=samples_r_all + samples_q_all))
+    # check that the two are the same
+    np.testing.assert_almost_equal(test_out_2, expected_out_2.values)
