@@ -145,8 +145,10 @@ def filter_and_get_min_k_ref(
             return (False, None, "not enough reference samples")
         else:
             # subtract 1 from min_n_samples_r because of python indexing
-            # add 1 also because of python indexing: we want k neighbors,
-            # which corresponds to (k-1)th index
+            # (if we want 5 samples included, we index with [4])
+            # add 1 also because of python indexing: if our [k-1]th
+            # index is the index at which our condition is fulfilled,
+            # we want k neighbors
             min_k_ref = sample_nth_occ_idc.values[min_n_samples_r - 1] + 1
             if min_k_ref <= k_min:
                 return (True, k_min, "pass")
@@ -214,6 +216,7 @@ def filter_and_get_min_k_ref(
             first_passing_sample = samples_r[passing_samples_idc[0]]
             # check which k comes with that sample (i.e. at which index that
             # specific sample has its min_n_cells-th occurrence)
+            # we add one, as [k-1]th index means k cells
             min_k_ref = sample_nth_occ_idc.loc[first_passing_sample] + 1
             # if that k is smaller than k_min, we return k_min:
             if min_k_ref <= k_min:
