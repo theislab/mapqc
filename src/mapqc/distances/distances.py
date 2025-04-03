@@ -25,8 +25,8 @@ def pairwise_sample_distances(
     Parameters
     ----------
     emb: np.ndarray
-        Array of shape (n_cells, n_features) for all and only the cells
-        in the neighborhood. Should be
+        Array of shape (n_cells, n_features) for all and only the cells in the
+        neighborhood.
     obs: pd.DataFrame
         Metadata (containing sample column) dataframe for all cells in emb, in the
         same order as emb.
