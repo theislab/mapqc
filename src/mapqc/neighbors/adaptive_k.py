@@ -7,6 +7,7 @@ def filter_and_get_adaptive_k(
     cell_df: pd.DataFrame,
     ref_q_key: str,
     sample_key: str,
+    sample_df: pd.DataFrame,
     q_cat: str,
     r_cat: str,
     min_n_cells: int,
@@ -28,6 +29,9 @@ def filter_and_get_adaptive_k(
         Key in cell_df that indicates the reference/query category of each cell.
     sample_key : str
         Key in cell_df that indicates each cell's sample identifier.
+    sample_df : pd.DataFrame
+        Dataframe with sample information of each sample's study. Order does not matter.
+        Should include ref_q column, and study column, the latter only if exclude_same_study is True.
     q_cat : str
         Query category in cell_df's ref_q_key column.
     r_cat : str
@@ -61,10 +65,10 @@ def filter_and_get_adaptive_k(
         if filter was passed, otherwise None; 3) a string with the reason for the filter
         pass/fail.
     """
-    if exclude_same_study:
-        sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first", study_key: "first"})
-    else:
-        sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first"})
+    # if exclude_same_study:
+    #     sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first", study_key: "first"})
+    # else:
+    #     sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first"})
     filter_pass_query, min_k_out_query, filter_info_query = filter_and_get_min_k_query(
         cell_df=cell_df,
         ref_q_key=ref_q_key,
@@ -83,7 +87,7 @@ def filter_and_get_adaptive_k(
         ref_q_key=ref_q_key,
         sample_key=sample_key,
         r_cat=r_cat,
-        k_min=k_min,
+        k_min=min_k_out_query,
         min_n_cells=min_n_cells,
         min_n_samples_r=min_n_samples_r,
         adapt_k=adapt_k,

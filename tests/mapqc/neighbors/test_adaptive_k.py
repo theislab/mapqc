@@ -17,11 +17,13 @@ def cell_df_small():
 
 
 def test_filter_and_get_adaptive_k(cell_df_small):
+    sample_df = cell_df_small.groupby("s").agg({"re_qu": "first", "paper": "first"})
     # first try out failing query
     assert filter_and_get_adaptive_k(
         cell_df=cell_df_small,
         ref_q_key="re_qu",
         sample_key="s",
+        sample_df=sample_df,
         q_cat="qu",
         r_cat="re",
         min_n_cells=4,
@@ -36,6 +38,7 @@ def test_filter_and_get_adaptive_k(cell_df_small):
         cell_df=cell_df_small,
         ref_q_key="re_qu",
         sample_key="s",
+        sample_df=sample_df,
         q_cat="qu",
         r_cat="re",
         min_n_cells=2,
@@ -54,6 +57,7 @@ def test_filter_and_get_adaptive_k(cell_df_small):
         cell_df=cell_df_small,
         ref_q_key="re_qu",
         sample_key="s",
+        sample_df=sample_df,
         q_cat="qu",
         r_cat="re",
         min_n_cells=2,
