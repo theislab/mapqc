@@ -6,7 +6,7 @@ from mapqc.center_cells.sampling import sample_center_cells_by_group
 
 @pytest.fixture
 def adata_obs():
-    # same amount of reference and query cells in total (18 each)
+    # same amount of reference and query cells in total (180 each)
     # cluster 1: cluster with only reference cells
     # cluster 2: many more query than reference cells
     # cluster 3: many more reference than query cells
