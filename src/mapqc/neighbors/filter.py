@@ -218,12 +218,12 @@ def filter_and_get_min_k_ref(
             # specific sample has its min_n_cells-th occurrence)
             # we add one, as [k-1]th index means k cells
             min_k_ref = sample_nth_occ_idc.loc[first_passing_sample] + 1
+            min_k_ref_incl_margin = min_k_ref + min_k_ref * adaptive_k_margin
             # if that k is smaller than k_min, we return k_min:
-            if min_k_ref <= k_min:
+            if min_k_ref_incl_margin <= k_min:
                 return (True, k_min, "pass")
             # otherwise, we take the needed k plus an added margin:
             else:
-                min_k_ref_incl_margin = min_k_ref + min_k_ref * adaptive_k_margin
                 return (True, np.ceil(min_k_ref_incl_margin).astype(int), "pass")
 
 

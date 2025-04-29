@@ -65,10 +65,6 @@ def filter_and_get_adaptive_k(
         if filter was passed, otherwise None; 3) a string with the reason for the filter
         pass/fail.
     """
-    # if exclude_same_study:
-    #     sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first", study_key: "first"})
-    # else:
-    #     sample_df = cell_df.groupby(sample_key).agg({ref_q_key: "first"})
     filter_pass_query, min_k_out_query, filter_info_query = filter_and_get_min_k_query(
         cell_df=cell_df,
         ref_q_key=ref_q_key,
