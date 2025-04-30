@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 import pytest
 
-from mapqc.distances.normalize import (
+from mapqc.distances.normalized_distances import (
     _fill_lower_triangle,
     _identify_outliers,
     _mask_rows_and_columns,

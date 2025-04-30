@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from mapqc.distances.distances import (
+from mapqc.distances.raw_distances import (
     _distance_between_cell_sets,
     pairwise_sample_distances,
 )

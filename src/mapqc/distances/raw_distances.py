@@ -64,7 +64,7 @@ def pairwise_sample_distances(
     """
     # check which samples pass min_n_cells filter, we only want to include
     # those when calculating pairwise distances
-    sample_cell_counts = obs.groupby(sample_key).size()
+    sample_cell_counts = obs.groupby(sample_key, observed=True).size()
     samples_with_enough_cells = sample_cell_counts[sample_cell_counts >= min_n_cells].index
     samples_r = [s for s in samples_r_all if s in samples_with_enough_cells]
     samples_q = [s for s in samples_q_all if s in samples_with_enough_cells]

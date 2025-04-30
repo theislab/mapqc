@@ -6,7 +6,7 @@ import numpy as np
 def get_normalized_dists_to_ref(
     pw_dists_triu: np.ndarray,
     ref_samples: list[str],
-):
+) -> np.ndarray:
     """Calculate normalized distance to the reference for each sample in each nhood.
 
     Parameters

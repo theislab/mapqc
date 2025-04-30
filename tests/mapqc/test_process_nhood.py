@@ -3,8 +3,8 @@ import pandas as pd
 import pytest
 from scipy.spatial.distance import cdist
 
-from mapqc.distances.distances import pairwise_sample_distances
-from mapqc.neighbors.nhood import process_neighborhood
+from mapqc.distances.raw_distances import pairwise_sample_distances
+from mapqc.process_nhood import process_neighborhood
 
 
 @pytest.fixture
@@ -87,11 +87,6 @@ def test_nhood_passing_filter(cell_info):
         np.array(cell_info.loc[center_cell, ["emb0", "emb1"]].values[None, :], dtype=float),
         cell_info.loc[:, ["emb0", "emb1"]].values,
     )
-    # and for the knn idc, let's calculate distances to center cell:
-    dists = cdist(
-        np.array(cell_info.loc[center_cell, ["emb0", "emb1"]].values[None, :], dtype=float),
-        cell_info.loc[:, ["emb0", "emb1"]].values,
-    )
     knn_idc = np.argsort(dists[0])[: expected_nhood_info_dict["k"]]
     expected_nhood_info_dict["knn_idc"] = knn_idc
     # check equality of dictionaries
@@ -125,6 +120,7 @@ def test_nhood_failing_query_filter(cell_info):
     # Indexing is a bit confusing as sometimes we have to add
     # or subtract 1 due to python indexing (e.g. needed k is
     # idx of passing cell + 1)
+    kmin = 5
     center_cell = "c6"
     samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     samples_q_all = ["s3", "s2"]
@@ -134,7 +130,7 @@ def test_nhood_failing_query_filter(cell_info):
         adata_obs=cell_info.loc[:, ["s", "re_qu"]],
         samples_r_all=samples_r_all,
         samples_q_all=samples_q_all,
-        k_min=5,
+        k_min=kmin,
         k_max=9,
         sample_key="s",
         ref_q_key="re_qu",
@@ -150,10 +146,21 @@ def test_nhood_failing_query_filter(cell_info):
     expected_nhood_info_dict = {
         "center_cell": center_cell,
         "k": None,
-        "knn_idc": None,
         "filter_info": "not enough query cells",
     }
-    assert nhood_info_dict == expected_nhood_info_dict
+    # for the knn idc, let's calculate distances to center cell:
+    dists = cdist(
+        np.array(cell_info.loc[center_cell, ["emb0", "emb1"]].values[None, :], dtype=float),
+        cell_info.loc[:, ["emb0", "emb1"]].values,
+    )
+    knn_idc = np.argsort(dists[0])[:kmin]
+    expected_nhood_info_dict["knn_idc"] = knn_idc
+    # check equality of dictionaries
+    for key, true_value in nhood_info_dict.items():
+        if isinstance(true_value, np.ndarray):
+            assert (true_value == expected_nhood_info_dict[key]).all()
+        else:
+            assert true_value == expected_nhood_info_dict[key]
     # and we expect an empty pw_dists matrix
     expected_pw_dists = np.full((len(samples_r_all), len(samples_r_all) + len(samples_q_all)), np.nan)
     np.testing.assert_equal(pw_dists, expected_pw_dists)
@@ -163,13 +170,14 @@ def test_nhood_failing_reference_filter(cell_info):
     center_cell = "c6"
     samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     samples_q_all = ["s3", "s2"]
+    kmin = 5
     nhood_info_dict, pw_dists = process_neighborhood(
         center_cell=center_cell,
         adata_emb=cell_info.loc[:, ["emb0", "emb1"]].values,
         adata_obs=cell_info.loc[:, ["s", "re_qu", "paper"]],
         samples_r_all=samples_r_all,
         samples_q_all=samples_q_all,
-        k_min=5,
+        k_min=kmin,
         k_max=10,
         sample_key="s",
         ref_q_key="re_qu",
@@ -194,10 +202,21 @@ def test_nhood_failing_reference_filter(cell_info):
     expected_nhood_info_dict = {
         "center_cell": center_cell,
         "k": None,
-        "knn_idc": None,
         "filter_info": "not enough reference samples from different studies",
     }
-    assert nhood_info_dict == expected_nhood_info_dict
+    # for the knn idc, let's calculate distances to center cell:
+    dists = cdist(
+        np.array(cell_info.loc[center_cell, ["emb0", "emb1"]].values[None, :], dtype=float),
+        cell_info.loc[:, ["emb0", "emb1"]].values,
+    )
+    knn_idc = np.argsort(dists[0])[:kmin]
+    expected_nhood_info_dict["knn_idc"] = knn_idc
+    # check equality of dictionaries
+    for key, true_value in nhood_info_dict.items():
+        if isinstance(true_value, np.ndarray):
+            assert (true_value == expected_nhood_info_dict[key]).all()
+        else:
+            assert true_value == expected_nhood_info_dict[key]
     # and we expect an empty pw_dists matrix
     expected_pw_dists = np.full((len(samples_r_all), len(samples_r_all) + len(samples_q_all)), np.nan)
     np.testing.assert_equal(pw_dists, expected_pw_dists)

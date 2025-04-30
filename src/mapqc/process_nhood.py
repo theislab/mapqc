@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from mapqc.distances.distances import pairwise_sample_distances
+from mapqc.distances.raw_distances import pairwise_sample_distances
 from mapqc.neighbors.adaptive_k import filter_and_get_adaptive_k
 
 
@@ -125,7 +125,7 @@ def process_neighborhood(
     cell_df = adata_obs.iloc[cell_idc_by_dist[:(k_max_minus_margin)], :].loc[
         :, metadata_to_keep + [sample_key]
     ]  # we add 1 to include the center cell
-    sample_df = cell_df.groupby(sample_key).agg({cat: "first" for cat in metadata_to_keep})
+    sample_df = cell_df.groupby(sample_key, observed=False).agg({cat: "first" for cat in metadata_to_keep})
     # filter and adapt k if wanted and needed (note that k will automatically not be adapted if cell_df has n_rows=min_k)
     filter_pass, adapted_k, filter_info = filter_and_get_adaptive_k(
         cell_df=cell_df,
@@ -146,13 +146,13 @@ def process_neighborhood(
         nhood_info_dict = {
             "center_cell": center_cell,
             "k": None,
-            "knn_idc": None,
+            "knn_idc": cell_idc_by_dist[:k_min],
             "filter_info": filter_info,
         }
         nhood_sample_pw_dists = np.full((n_samples_r_all, n_samples_r_all + n_samples_q_all), np.nan)
         return (nhood_info_dict, nhood_sample_pw_dists)
     else:
-        knn_idc = cell_idc_by_dist[:(adapted_k)]  # note that we include the center cell in our k count
+        knn_idc = cell_idc_by_dist[:adapted_k]  # note that we include the center cell in our k count
         nhood_emb = adata_emb[knn_idc, :]
         nhood_obs = adata_obs.iloc[knn_idc, :]
         if exclude_same_study:
