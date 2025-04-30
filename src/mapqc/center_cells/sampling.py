@@ -3,9 +3,9 @@ import pandas as pd
 
 
 def sample_center_cells_by_group(
+    adata_obs: pd.DataFrame,
     ref_q_key: str,
     q_cat: str,
-    adata_obs: pd.DataFrame,
     grouping_cat: str,
     n_cells: int,
     seed: int,
@@ -33,7 +33,7 @@ def sample_center_cells_by_group(
         List of cell indices (row names of adata_obs) that were sampled.
     """
     # calculate proportions per group for reference and query:
-    ref_q_group_n = adata_obs.groupby([ref_q_key, grouping_cat]).size().unstack()
+    ref_q_group_n = adata_obs.groupby([ref_q_key, grouping_cat], observed=True).size().unstack()
     ref_q_group_n = ref_q_group_n.fillna(0)
     ref_q_group_props = ref_q_group_n.div(ref_q_group_n.sum(axis=1), axis=0)
     # as the target group proportions, take the mean of the reference and
@@ -60,7 +60,7 @@ def sample_center_cells_by_group(
     sampled_cells = pd.concat(
         [
             group.sample(target_n_cells_per_group[group_name], replace=False, random_state=seed)
-            for group_name, group in adata_obs.loc[adata_obs[ref_q_key] == q_cat].groupby(grouping_cat)
+            for group_name, group in adata_obs.loc[adata_obs[ref_q_key] == q_cat].groupby(grouping_cat, observed=True)
         ]
     ).index.tolist()
     # return result:
