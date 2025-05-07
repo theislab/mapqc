@@ -29,6 +29,7 @@ def validate_input_params(params: MapQCParams):
     _check_grouping_key(params.adata, params.grouping_key)
     _check_distance_metric(params.distance_metric)
     _check_seed(params.seed)
+    _check_overwrite(params.overwrite, params.adata)
 
 
 def _check_adata(adata, adata_emb_loc):
@@ -48,6 +49,11 @@ def _check_adata(adata, adata_emb_loc):
         adata_emb = adata.obsm[adata_emb_loc]
     if not isinstance(adata_emb, np.ndarray) and not isinstance(adata_emb, sparse.spmatrix):
         raise ValueError("Your embedding must be a numpy array or a scipy sparse matrix.")
+    if adata_emb.shape[1] > 500:
+        warnings.warn(
+            "Your embedding has more than 500 dimensions. Are you sure this is the low-dimensional mapping-based embedding?",
+            stacklevel=3,
+        )
 
 
 def _check_ref_q_arguments(adata, ref_q_key, q_cat, r_cat):
@@ -190,3 +196,16 @@ def _check_seed(seed):
             raise ValueError("seed must be an integer.")
         if seed < 0:
             raise ValueError("seed must be greater than 0.")
+
+
+def _check_overwrite(overwrite, adata):
+    """Check if overwrite is valid"""
+    if not isinstance(overwrite, bool):
+        raise ValueError("overwrite must be a boolean.")
+    if not overwrite:
+        if "mapqc_score" in adata.obs.columns:
+            raise ValueError("mapqc_score column already exists in adata.obs. Set overwrite to True to overwrite it.")
+        if "mapqc_filtering" in adata.obs.columns:
+            raise ValueError(
+                "mapqc_filtering column already exists in adata.obs. Set overwrite to True to overwrite it."
+            )

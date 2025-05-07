@@ -13,38 +13,12 @@ class MapQCParams:
 
     Attributes
     ----------
-    adata : sc.AnnData
-        The main AnnData object containing the data
-    adata_emb_loc : str
-        The location of the embedding in the adata.obsm or "X" if the embedding is in adata.X
-    ref_q_key : str
-        Key in adata.obs that contains reference/query labels
-    q_cat : str
-        Category label for query samples
-    r_cat : str
-        Category label for reference samples
-    sample_key : str
-        Key in adata.obs that contains sample identifiers
-    n_nhoods : int
-        Number of neighborhoods to analyze
-    k_min : int
-        Minimum number of neighbors to consider
-    k_max : int
-        Maximum number of neighbors to consider
-    min_n_cells : int
-        Minimum number of cells required in a neighborhood
-    min_n_samples_r : int
-        Minimum number of reference samples required
-    exclude_same_study : bool
-        Whether to exclude samples from the same study
-    study_key : str
-        Key in adata.obs that contains study identifiers
-    grouping_key : str
-        Key in adata.obs that contains grouping information
-    adaptive_k_margin : float
-        Margin for adaptive k selection
-    distance_metric : Literal["energy_distance", "pairwise_euclidean"]
-        Distance metric to use to calculate distances between samples
+    (as run.py arguments)
+
+    samples_r: list[str]
+        List of reference sample names in adata, ordered alphabetically.
+    samples_q: list[str]
+        List of query sample names in adata, ordered alphabetically.
     """
 
     adata: sc.AnnData | None = None
@@ -65,5 +39,6 @@ class MapQCParams:
     adaptive_k_margin: float | None = None
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] | None = None
     seed: int | None = None
+    overwrite: bool | None = None
     samples_r: list[str] | None = None
     samples_q: list[str] | None = None

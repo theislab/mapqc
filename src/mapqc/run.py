@@ -36,6 +36,7 @@ def run_mapqc(
     adaptive_k_margin: float = 0.1,
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
     seed: int = None,
+    overwrite: bool = False,
 ):
     """
     Run mapqc on an AnnData object.
@@ -103,6 +104,7 @@ def run_mapqc(
         adaptive_k_margin=adaptive_k_margin,
         distance_metric=distance_metric,
         seed=seed,
+        overwrite=overwrite,
     )
 
     # validate input
@@ -148,7 +150,14 @@ def run_mapqc(
     dists_to_ref = get_normalized_dists_to_ref(params, dists)
     mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
         params=params,
-        dists_to_ref=dists_to_ref,
-        nhood_info=nhood_info,
+        sample_dist_to_ref_per_nhood=dists_to_ref,
+        nhood_info_df=nhood_info,
     )
-    return mapqc_scores, filtering_info_per_cell
+    # modify input adata object
+    params.adata.obs["mapqc_score"] = np.nan
+    params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, "mapqc_score"] = mapqc_scores
+    params.adata.obs["mapqc_filtering"] = None
+    params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, "mapqc_filtering"] = (
+        filtering_info_per_cell
+    )
+    # return mapqc_scores, filtering_info_per_cell
