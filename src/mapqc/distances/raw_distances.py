@@ -5,51 +5,30 @@ import pandas as pd
 from numpy.typing import NDArray
 from sklearn.metrics import pairwise_distances
 
-# from sklearn_ann.kneighbors.annoy import AnnoyTransformer
+from mapqc.params import MapQCParams
 
 
 def pairwise_sample_distances(
+    params: MapQCParams,
     emb: np.ndarray,
     obs: pd.DataFrame,
-    samples_r_all: list[str],
-    samples_q_all: list[str],
-    sample_key: str,
-    min_n_cells: int,
-    exclude_same_study: bool,
     sample_df: pd.DataFrame = None,
-    study_key: str = None,
-    distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
 ) -> np.ndarray:
     """Calculate pairwise distances between samples in the neighborhood.
 
     Parameters
     ----------
+    params: MapQCParams
+        MapQC parameters object.
     emb: np.ndarray
         Array of shape (n_cells, n_features) for all and only the cells in the
         neighborhood.
     obs: pd.DataFrame
         Metadata (containing sample column) dataframe for all cells in emb, in the
         same order as emb.
-    samples_r_all: list[str]
-        List of all reference sample names, ordered consistently across neighborhoods,
-        including also samples that are not in the neighborhood.
-    samples_q_all: list[str]
-        List of all query sample names, ordered consistently across neighborhoods,
-        including also samples that are not in the neighborhood.
-    sample_key: str
-        Column name of the sample column in obs.
-    min_n_cells: int
-        Minimum number of cells per sample.
-    exclude_same_study: bool
-        Whether to exclude pairs of samples from the same study.
     sample_df: pd.DataFrame = None
         Metadata (containing study column) dataframe for all samples in the
         neighborhood, order does not matter. Only needed if exclude_same_study is True.
-    study_key: str = None
-        Column name of the study column in sample_df. Only needed if exclude_same_study is True.
-    distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance"
-        Distance metric to use to calculate distances between samples (i.e. between
-        two sets of cells).
 
     Returns
     -------
@@ -64,17 +43,18 @@ def pairwise_sample_distances(
     """
     # check which samples pass min_n_cells filter, we only want to include
     # those when calculating pairwise distances
-    sample_cell_counts = obs.groupby(sample_key, observed=True).size()
-    samples_with_enough_cells = sample_cell_counts[sample_cell_counts >= min_n_cells].index
-    samples_r = [s for s in samples_r_all if s in samples_with_enough_cells]
-    samples_q = [s for s in samples_q_all if s in samples_with_enough_cells]
+    sample_cell_counts = obs.groupby(params.sample_key, observed=True).size()
+    samples_with_enough_cells = sample_cell_counts[sample_cell_counts >= params.min_n_cells].index
+    # get samples in r and q that pass min_n_cells filter in this specific neighborhood/cell subset
+    samples_r = [s for s in params.samples_r if s in samples_with_enough_cells]
+    samples_q = [s for s in params.samples_q if s in samples_with_enough_cells]
     # create an empty matrix for *all* samples in adata, of size
     # n_all_samples_r x (n_all_samples_r + n_all_samples_q)
-    pw_dists = np.full((len(samples_r_all), len(samples_r_all) + len(samples_q_all)), np.nan)
+    pw_dists = np.full((len(params.samples_r), len(params.samples_r) + len(params.samples_q)), np.nan)
     # create a matching mask array, masking:
     # 1. samples not in the nhood
-    rows_in_nhood = np.array([s in samples_r for s in samples_r_all])
-    cols_in_nhood = np.array([s in samples_r + samples_q for s in samples_r_all + samples_q_all])
+    rows_in_nhood = np.array([s in samples_r for s in params.samples_r])
+    cols_in_nhood = np.array([s in samples_r + samples_q for s in params.samples_r + params.samples_q])
     mask_s_in_nhood = np.outer(rows_in_nhood, cols_in_nhood)  # boolean
     # 2. Only if pairs from same study excluded:
     # samples from same study (will also only apply to
@@ -82,10 +62,13 @@ def pairwise_sample_distances(
     # samples are only compared to ref and therefore never
     # have same-study pairs)
     # Then combine masks into final mask
-    if exclude_same_study:
-        row_studies = np.array([sample_df.loc[s, study_key] if s in samples_r else None for s in samples_r_all])
+    if params.exclude_same_study:
+        row_studies = np.array(
+            [sample_df.loc[s, params.study_key] if s in samples_r else None for s in params.samples_r]
+        )
         col_studies = [
-            sample_df.loc[s, study_key] if s in samples_r + samples_q else None for s in samples_r_all + samples_q_all
+            sample_df.loc[s, params.study_key] if s in samples_r + samples_q else None
+            for s in params.samples_r + params.samples_q
         ]
         # Handling of None values (i.e. samples not in the neighborhood):
         # they are treated as all other values, so two samples both
@@ -98,29 +81,29 @@ def pairwise_sample_distances(
         mask = mask_s_in_nhood
     # fill the distances in the pw_dists matrix
     # loop through sample pairs, only calculate distance if mask is True
-    for i, s1 in enumerate(samples_r_all):
+    for i, s1 in enumerate(params.samples_r):
         if s1 in samples_r:
             # get cell embeddings for ref sample
-            s1_cell_idc = np.where(obs[sample_key] == s1)[0]
+            s1_cell_idc = np.where(obs[params.sample_key] == s1)[0]
             emb_s1 = emb[s1_cell_idc, :]
-            for j, s2 in enumerate(samples_r_all + samples_q_all):
+            for j, s2 in enumerate(params.samples_r + params.samples_q):
                 # only calculate for upper triangle
                 # i.e. don't calculate distance for (i,j) if already calculated for (j,i)
                 if j > i:
                     # if this pair was not masked, i.e. if the mask is True:
                     if mask[i, j]:
                         # get cell embeddings for second sample
-                        s2_cell_idc = np.where(obs[sample_key] == s2)[0]
+                        s2_cell_idc = np.where(obs[params.sample_key] == s2)[0]
                         emb_s2 = emb[s2_cell_idc]
                         # and calculate distance between samples
-                        pw_dists[i, j] = _distance_between_cell_sets(emb_s1, emb_s2, distance_metric)
+                        pw_dists[i, j] = _distance_between_cell_sets(emb_s1, emb_s2, params.distance_metric)
     return pw_dists
 
 
 def _distance_between_cell_sets(
     cell_set_1: NDArray,
     cell_set_2: NDArray,
-    distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
+    distance_metric: Literal["energy_distance", "pairwise_euclidean"],
     precomputed_distance_matrix: NDArray | None = None,
 ) -> float:
     """Calculate the distance between two sets of cells.
@@ -172,24 +155,3 @@ def _distance_between_cell_sets(
         mask_2 = ~np.eye(n_cells_2, dtype=bool)
         sigma_2 = self_dists_2[mask_2].mean()
         return 2 * delta - sigma_1 - sigma_2
-
-
-# def pairwise_distances_fast(X, k, distance_metric="euclidean"):
-#     """
-#     TO DO: WRITE DOCSTRING ONCE I'M SURE I WANT TO INCLUDE THIS
-#     (I.E. ONCE I'VE DONE TESTING REGARDING SPEED)
-#     """
-#     annoy_transformer = AnnoyTransformer(
-#         n_neighbors=k,  # Choose a reasonable number
-#         metric=distance_metric,
-#         n_trees=10
-#     )
-#     n_obs = X.shape[0]
-#     annoy_transformer.fit(X)
-#     indices = np.empty((n_obs, k), dtype=int)
-#     distances = np.empty((n_obs, k))
-#     for i, x in enumerate(X):
-#         indices[i], distances[i] = annoy_transformer.annoy_.get_nns_by_vector(
-#             x.tolist(), k, annoy_transformer.search_k, include_distances=True
-#         )
-#     return indices, distances

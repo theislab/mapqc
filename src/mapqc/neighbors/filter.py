@@ -1,36 +1,22 @@
 import numpy as np
 import pandas as pd
 
+from mapqc.params import MapQCParams
+
 
 def filter_and_get_min_k_query(
+    params: MapQCParams,
     cell_df: pd.DataFrame,
-    ref_q_key: str,
-    sample_key: str,
-    q_cat: str,
-    k_min: int,
-    adaptive_k_margin: float,
-    min_n_cells: int,
 ) -> tuple[bool, int | None, str]:
     """Checks if neighborhood has enough query cells for any query sample.
 
     Parameters
     ----------
+    params: MapQCParams
+        MapQC parameters object.
     cell_df : pd.DataFrame
         Dataframe with cells ordered by distance to the center cell, as well as information
         about sample, and reference/query category..
-    ref_q_key : str
-        Key in cell_df that indicates the reference/query category of each cell.
-    sample_key : str
-        Key in cell_df that indicates each cell's sample identifier.
-    q_cat : str
-        Query category in ref_q_key.
-    k_min : int
-        Minimum number of neighbors.
-    adaptive_k_margin : float
-        Margin to add (as fraction) to the minimum number of neighbors at which
-        all filter conditions are met, if this number if larger than k_min.
-    min_n_cells : int
-        Minimum number cells per sample.
 
     Returns
     -------
@@ -41,9 +27,12 @@ def filter_and_get_min_k_query(
         pass/fail.
     """
     # Set all reference cells to None
-    samples_q = [s if r_q == q_cat else None for s, r_q in zip(cell_df[sample_key], cell_df[ref_q_key], strict=False)]
+    samples_q = [
+        s if r_q == params.q_cat else None
+        for s, r_q in zip(cell_df[params.sample_key], cell_df[params.ref_q_key], strict=False)
+    ]
     # Get nth occurrence of each query sample
-    sample_nth_occ_idc = _get_idc_nth_instances(pd.Categorical(samples_q), min_n_cells)
+    sample_nth_occ_idc = _get_idc_nth_instances(pd.Categorical(samples_q), params.min_n_cells)
     # if no sample has enough cells:
     if len(sample_nth_occ_idc) == 0:
         return (False, None, "not enough query cells")
@@ -51,13 +40,13 @@ def filter_and_get_min_k_query(
     # Note that we add a +1 because of python indexing: 1st instance means
     # second observation, i.e. k=2 neighbors needed
     min_k_query = min(sample_nth_occ_idc.values) + 1  #
-    if min_k_query < k_min:
-        return (True, k_min, "pass")
+    if min_k_query < params.k_min:
+        return (True, params.k_min, "pass")
     else:
         # note that if we adapt the k, we add a margin to not limit the neighborhood
         # size EXACTLY at the point where we fulfill conditions, as I think this
         # could create some weird biases.
-        min_k_incl_margin = min_k_query + min_k_query * adaptive_k_margin
+        min_k_incl_margin = min_k_query + min_k_query * params.adaptive_k_margin
         return (
             True,
             np.ceil(min_k_incl_margin).astype(int),
@@ -66,56 +55,27 @@ def filter_and_get_min_k_query(
 
 
 def filter_and_get_min_k_ref(
+    params: MapQCParams,
     cell_df: pd.DataFrame,
-    ref_q_key: str,
-    sample_key: str,
-    r_cat: str,
-    k_min: int,
-    min_n_cells: int,
-    min_n_samples_r: int,
-    adapt_k: bool,
-    exclude_same_study: bool,
+    k_min_query: int,
     sample_df: pd.DataFrame = None,
-    adaptive_k_margin: float = None,
-    study_key: str = None,
 ) -> tuple[bool, int | None, str]:
     """Checks if neighborhood has enough reference samples with enough cells.
 
     Parameters
     ----------
+    params: MapQCParams
+        MapQC parameters object.
     cell_df : pd.DataFrame
         Dataframe with cells ordered by distance to the center cell, as well as information
         about sample, and reference/query category. Note that cell_df should be of row size k_min
         if no adaptive k is used, and of size (max_k / (1 + adaptive_k_margin)) if adaptive k
         is used.
-    ref_q_key : str
-        Key in cell_df that indicates the reference/query category of each cell.
-    sample_key : str
-        Key in cell_df that indicates each cell's sample identifier.
-    r_cat : str
-        Reference category in cell_df's ref_q_key column.
-    k_min : int
-        Minimum number of neighbors.
-    min_n_cells : int
-        Minimum number cells per sample.
-    min_n_samples_r : int
-        Minimum number of reference samples per neighborhood.
-    adapt_k : bool
-        Whether to adapt the number of neighbors if filtering conditions are not met.
-    exclude_same_study : bool
-        Whether to exclude same-study pairs when counting the number of reference
-        samples (see code for details on how number of pairs is used to check
-        if filtering conditions are met.)
+    k_min_query : int
+        Minimum number of neighbors based on already performed query-based filtering.
     sample_df : pd.DataFrame, optional
         Dataframe with sample information of each sample's study. Order does not matter.
         Only needed if exclude_same_study is True.
-    adaptive_k_margin : float, optional
-        Margin to add (as fraction) to the minimum number of neighbors at which
-        all filter conditions are met, if this number if larger than k_min. Note
-        that this argument has to be set if adapt_k is True.
-    study_key : str, optional
-        Key in sample_df that indicates the study of each sample. Only needed if
-        exclude_same_study is True.
 
     Returns
     -------
@@ -127,7 +87,8 @@ def filter_and_get_min_k_ref(
     """
     # Get the sample for each cell, while setting query cells to None
     cell_samples_r = [
-        s if r_q == r_cat else None for s, r_q in zip(cell_df[sample_key], cell_df[ref_q_key], strict=False)
+        s if r_q == params.r_cat else None
+        for s, r_q in zip(cell_df[params.sample_key], cell_df[params.ref_q_key], strict=False)
     ]
     # Convert to categorical for easier processing
     cell_samples_r = pd.Categorical(cell_samples_r)
@@ -138,10 +99,10 @@ def filter_and_get_min_k_ref(
     # (Samples are now ordered by closest to the center cell
     # (based on nth occurrence) to furthest, samples with
     # too few cells are excluded)
-    sample_nth_occ_idc = _get_idc_nth_instances(pd.Categorical(cell_samples_r), min_n_cells)
-    if not exclude_same_study:
+    sample_nth_occ_idc = _get_idc_nth_instances(pd.Categorical(cell_samples_r), params.min_n_cells)
+    if not params.exclude_same_study:
         # if fewer than min_n_samples_r have at least min_n_cells, filter is not passed
-        if len(sample_nth_occ_idc) < min_n_samples_r:
+        if len(sample_nth_occ_idc) < params.min_n_samples_r:
             return (False, None, "not enough reference samples")
         else:
             # subtract 1 from min_n_samples_r because of python indexing
@@ -149,11 +110,11 @@ def filter_and_get_min_k_ref(
             # add 1 also because of python indexing: if our [k-1]th
             # index is the index at which our condition is fulfilled,
             # we want k neighbors
-            min_k_ref = sample_nth_occ_idc.values[min_n_samples_r - 1] + 1
-            if min_k_ref <= k_min:
-                return (True, k_min, "pass")
+            min_k_ref = sample_nth_occ_idc.values[params.min_n_samples_r - 1] + 1
+            if min_k_ref <= k_min_query:
+                return (True, k_min_query, "pass")
             else:
-                min_k_incl_margin = min_k_ref + min_k_ref * adaptive_k_margin
+                min_k_incl_margin = min_k_ref + min_k_ref * params.adaptive_k_margin
                 return (True, np.ceil(min_k_incl_margin).astype(int), "pass")
     else:
         # if we want to exclude same-study pairs
@@ -163,10 +124,10 @@ def filter_and_get_min_k_ref(
         samples_r = sample_nth_occ_idc.index
         # if the total of reference samples does not even satisfy min_n_samples_r,
         # we can already stop here:
-        if len(samples_r) < min_n_samples_r:
+        if len(samples_r) < params.min_n_samples_r:
             return (False, None, "not enough reference samples")
         # get the study for each reference sample
-        sample_studies_r = sample_df.loc[samples_r, study_key]
+        sample_studies_r = sample_df.loc[samples_r, params.study_key]
         # a minimum number of reference samples can be seen as a minimum
         # number of pairwise comparisons. If min_n_samples_r is n, then
         # we expect n**2 comparisons, or (n**2) - n comparisons, if we
@@ -177,10 +138,10 @@ def filter_and_get_min_k_ref(
         # from the same study, and see if we have enough pairs left
         # Note that if min_n_samples_r is 1, we set min_n_pairs to 1 manually,
         # as the calculation would result in a 0
-        if min_n_samples_r == 1:
+        if params.min_n_samples_r == 1:
             min_n_pairs = 1
         else:
-            min_n_pairs = ((min_n_samples_r**2) - min_n_samples_r) / 2
+            min_n_pairs = ((params.min_n_samples_r**2) - params.min_n_samples_r) / 2
         # create a matrix specifying for our samples if they come
         # from the same study or not
         diff_study = _create_difference_matrix(sample_studies_r)
@@ -191,7 +152,7 @@ def filter_and_get_min_k_ref(
         # don't include pairs of the same (i,i), i.e. the diagonal)
         mask = np.triu(np.ones_like(diff_study), k=1)
         # if we do not want to adapt k, we just check the total number of pairs:
-        if not adapt_k:
+        if not params.adapt_k:
             n_valid_pairs = (diff_study * mask).sum()
             if n_valid_pairs < min_n_pairs:
                 return (
@@ -200,7 +161,7 @@ def filter_and_get_min_k_ref(
                     "not enough reference samples from different studies",
                 )
             else:
-                return (True, k_min, "pass")
+                return (True, k_min_query, "pass")
         # if we do want to adapt k, we want to check at which point we have a large
         # enough neighborhood (i.e. at which number of samples)
         # We here calculate the number of valid pairs, increasing the number of
@@ -218,10 +179,10 @@ def filter_and_get_min_k_ref(
             # specific sample has its min_n_cells-th occurrence)
             # we add one, as [k-1]th index means k cells
             min_k_ref = sample_nth_occ_idc.loc[first_passing_sample] + 1
-            min_k_ref_incl_margin = min_k_ref + min_k_ref * adaptive_k_margin
-            # if that k is smaller than k_min, we return k_min:
-            if min_k_ref_incl_margin <= k_min:
-                return (True, k_min, "pass")
+            min_k_ref_incl_margin = min_k_ref + min_k_ref * params.adaptive_k_margin
+            # if that k is smaller than k_min_query, we return k_min_query:
+            if min_k_ref_incl_margin <= k_min_query:
+                return (True, k_min_query, "pass")
             # otherwise, we take the needed k plus an added margin:
             else:
                 return (True, np.ceil(min_k_ref_incl_margin).astype(int), "pass")

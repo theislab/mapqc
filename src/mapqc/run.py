@@ -35,6 +35,7 @@ def run_mapqc(
     grouping_key: str = None,
     adaptive_k_margin: float = 0.1,
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
+    seed: int = None,
 ):
     """
     Run mapqc on an AnnData object.
@@ -75,6 +76,8 @@ def run_mapqc(
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance"
         Distance metric to use to calculate distances between samples (i.e. between
         two sets of cells).
+    seed: int = None
+        Seed for random number generator.
 
     Returns
     -------
@@ -99,19 +102,21 @@ def run_mapqc(
         grouping_key=grouping_key,
         adaptive_k_margin=adaptive_k_margin,
         distance_metric=distance_metric,
+        seed=seed,
     )
 
     # validate input
     validate_input_params(params)
 
+    # set adapt_k parameter:
+    if params.k_max > params.k_min:
+        params.adapt_k = True
+    else:
+        params.adapt_k = False
+
     # now prepare run
     center_cells = sample_center_cells_by_group(
-        adata_obs=params.adata.obs,
-        ref_q_key=params.ref_q_key,
-        q_cat=params.q_cat,
-        grouping_cat=params.grouping_key,
-        n_cells=params.n_nhoods,
-        seed=42,
+        params=params,
     )
 
     samples_r = sorted(
@@ -120,6 +125,8 @@ def run_mapqc(
     samples_q = sorted(
         params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, params.sample_key].unique().tolist()
     )
+    params.samples_r = samples_r
+    params.samples_q = samples_q
 
     nhood_info = pd.DataFrame(
         columns=[
@@ -135,35 +142,13 @@ def run_mapqc(
     )
 
     for i, cell in enumerate(center_cells):
-        nhood_info.loc[cell], dists[:, :, i] = process_neighborhood(
-            center_cell=cell,
-            adata_emb=params.adata.X if params.adata_emb_loc == "X" else params.adata.obsm[params.adata_emb_loc],
-            adata_obs=params.adata.obs,
-            samples_r_all=samples_r,
-            samples_q_all=samples_q,
-            k_min=params.k_min,
-            k_max=params.k_max,
-            sample_key=params.sample_key,
-            ref_q_key=params.ref_q_key,
-            q_cat=params.q_cat,
-            r_cat=params.r_cat,
-            min_n_cells=params.min_n_cells,
-            min_n_samples_r=params.min_n_samples_r,
-            exclude_same_study=params.exclude_same_study,
-            adaptive_k_margin=params.adaptive_k_margin,
-            study_key=params.study_key,
-            distance_metric=params.distance_metric,
-        )
+        nhood_info.loc[cell], dists[:, :, i] = process_neighborhood(params=params, center_cell=cell)
         nhood_info.loc[cell, "nhood_number"] = i
 
-    dists_to_ref = get_normalized_dists_to_ref(dists, samples_r)
+    dists_to_ref = get_normalized_dists_to_ref(params, dists)
     mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
-        dists_to_ref,
-        nhood_info,
-        params.adata.obs,
-        params.ref_q_key,
-        params.q_cat,
-        params.sample_key,
-        samples_q,
+        params=params,
+        dists_to_ref=dists_to_ref,
+        nhood_info=nhood_info,
     )
     return mapqc_scores, filtering_info_per_cell

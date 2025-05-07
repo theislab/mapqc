@@ -47,106 +47,23 @@ class MapQCParams:
         Distance metric to use to calculate distances between samples
     """
 
-    adata: sc.AnnData
-    adata_emb_loc: str
-    ref_q_key: str
-    q_cat: str
-    r_cat: str
-    sample_key: str
-    n_nhoods: int
-    k_min: int
-    k_max: int
-    min_n_cells: int
-    min_n_samples_r: int
-    exclude_same_study: bool
-    study_key: str
-    grouping_key: str
-    adaptive_k_margin: float
-    distance_metric: Literal["energy_distance", "pairwise_euclidean"]
-
-
-# @dataclass
-# class NeighborhoodParams:
-#     """
-#     Parameters specific to neighborhood processing.
-#     Only includes parameters needed for process_neighborhood function.
-#     """
-
-#     adata_emb: sc.AnnData
-#     adata_obs: pd.DataFrame
-#     ref_q_key: str
-#     q_cat: str
-#     r_cat: str
-#     sample_key: str
-#     k_min: int
-#     k_max: int
-#     min_n_cells: int
-#     min_n_samples_r: int
-#     exclude_same_study: bool
-#     study_key: str
-#     adaptive_k_margin: float
-
-#     @classmethod
-#     def from_mapqc_params(cls, params: MapQCParams) -> "NeighborhoodParams":
-#         """Create NeighborhoodParams from MapQCParams."""
-#         return cls(
-#             adata_emb=params.adata_emb,
-#             adata_obs=params.adata.obs,
-#             ref_q_key=params.ref_q_key,
-#             q_cat=params.q_cat,
-#             r_cat=params.r_cat,
-#             sample_key=params.sample_key,
-#             k_min=params.k_min,
-#             k_max=params.k_max,
-#             min_n_cells=params.min_n_cells,
-#             min_n_samples_r=params.min_n_samples_r,
-#             exclude_same_study=params.exclude_same_study,
-#             study_key=params.study_key,
-#             adaptive_k_margin=params.adaptive_k_margin,
-#         )
-
-
-# @dataclass
-# class CenterCellParams:
-#     """
-#     Parameters specific to center cell sampling.
-#     Only includes parameters needed for sample_center_cells_by_group function.
-#     """
-
-#     adata_obs: pd.DataFrame
-#     ref_q_key: str
-#     q_cat: str
-#     grouping_cat: str
-#     n_cells: int
-
-#     @classmethod
-#     def from_mapqc_params(cls, params: MapQCParams) -> "CenterCellParams":
-#         """Create CenterCellParams from MapQCParams."""
-#         return cls(
-#             adata_obs=params.adata.obs,
-#             ref_q_key=params.ref_q_key,
-#             q_cat=params.q_cat,
-#             grouping_cat=params.grouping_key,
-#             n_cells=params.n_nhoods,
-#         )
-
-
-# # Example of how to use these in your code:
-# """
-# # In your main function:
-# params = MapQCParams(...)
-
-# # For neighborhood processing:
-# nhood_params = NeighborhoodParams.from_mapqc_params(params)
-# result = process_neighborhood(
-#     center_cell=cell,
-#     **nhood_params.__dict__  # This unpacks all parameters
-# )
-
-# # For center cell sampling:
-# center_params = CenterCellParams.from_mapqc_params(params)
-# center_cells = sample_center_cells_by_group(
-#     **center_params.__dict__,
-#     seed=42  # Additional parameters can be added
-# )
-# """"
+    adata: sc.AnnData | None = None
+    adata_emb_loc: str | None = None
+    ref_q_key: str | None = None
+    q_cat: str | None = None
+    r_cat: str | None = None
+    sample_key: str | None = None
+    n_nhoods: int | None = None
+    k_min: int | None = None
+    k_max: int | None = None
+    adapt_k: bool | None = None
+    min_n_cells: int | None = None
+    min_n_samples_r: int | None = None
+    exclude_same_study: bool | None = None
+    study_key: str | None = None
+    grouping_key: str | None = None
+    adaptive_k_margin: float | None = None
+    distance_metric: Literal["energy_distance", "pairwise_euclidean"] | None = None
+    seed: int | None = None
+    samples_r: list[str] | None = None
+    samples_q: list[str] | None = None

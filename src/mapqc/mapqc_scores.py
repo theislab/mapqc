@@ -3,38 +3,27 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from mapqc.params import MapQCParams
+
 
 def calculate_mapqc_scores(
+    params: MapQCParams,
     sample_dist_to_ref_per_nhood: np.ndarray,
     nhood_info_df: pd.DataFrame,
-    adata_obs: pd.DataFrame,
-    ref_q_key: str,
-    q_cat: str,
-    sample_key: str,
-    samples_q: list[str],
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Calculate cell-level mapqc scores using nhood-sample-specific dists to ref.
 
     Parameters
     ----------
+    params: MapQCParams
+        MapQC parameters object.
     sample_dist_to_ref_per_nhood: np.ndarray
         Array of shape (n_samples_r + n_samples_q, n_nhoods, n_cells_q) containing
         the normalized distance of each sample to the reference for each neighborhood.
     nhood_info_df: pd.DataFrame
         DataFrame containing information about each neighborhood, taken from the output
         of process_nhood.
-    adata_obs: pd.DataFrame
-        .obs datframe of input adata object, including reference and query.
-    ref_q_key: str
-        Name of the adata_obs column that indicates whether a cell is a reference or query cell.
-    q_cat: str
-        Category of query cells in adata_obs[ref_q_key].
-    sample_key: str
-        Name of the column in adata_obs that indicates the sample each cell belongs to.
-    samples_q: list[str]
-        List of query samples in adata_obs[sample_key], ordered alphabetically, in the same
-        way as in the rest of the package.
 
     Returns
     -------
@@ -46,13 +35,14 @@ def calculate_mapqc_scores(
         order as mapqc_scores array.
     """
     sample_dist_to_ref_per_nhood_query = sample_dist_to_ref_per_nhood[
-        -len(samples_q) :, :
+        -len(params.samples_q) :, :
     ]  # first rows represent ref samples, last rows query samples
     # create mask to apply to sample_dist_to_ref_per_nhood, such
     # that for each cell, we only keep distances to the reference
     # for its sample, and for the neighborhoods in which it occurred.
     full_mask, nhood_mask, _ = _create_sample_and_nhood_based_cell_mask(
-        adata_obs, nhood_info_df, ref_q_key, q_cat, sample_key, samples_q
+        params=params,
+        nhood_info_df=nhood_info_df,
     )
     # apply mask to sample_dist_to_ref_per_nhood
     sample_dist_to_ref_per_nhood_masked = np.where(
@@ -71,7 +61,8 @@ def calculate_mapqc_scores(
 
 
 def _create_sample_and_nhood_based_cell_mask(
-    adata_obs, nhood_info_df, ref_q_key, q_cat, sample_key, samples_q
+    params: MapQCParams,
+    nhood_info_df: pd.DataFrame,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create mask set to 1 for each cell at the sample and neighborhood(s) it was part of.
 
@@ -88,13 +79,13 @@ def _create_sample_and_nhood_based_cell_mask(
             Shape: (n_samples_q, n_cells_q)
     """
     n_nhoods = nhood_info_df.shape[0]
-    n_samples_q = len(samples_q)
-    query_cells = adata_obs.loc[adata_obs[ref_q_key] == q_cat, :].index.values
+    n_samples_q = len(params.samples_q)
+    query_cells = params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, :].index.values
     n_query_cells = len(query_cells)
     # 1. CREATE NEIGHBORHOOD-BASED MASK
     # start nhood_mask with full dimensionality, as we get index numbers of
     # cells in each neighborhood based on indices of the full adata.
-    cell_nhood_mask_full = np.zeros((n_nhoods, adata_obs.shape[0]), dtype=int)
+    cell_nhood_mask_full = np.zeros((n_nhoods, params.adata.shape[0]), dtype=int)
     # now set values representing the neighborhood(s) that a cell was part of as 1
     # For each entry to set, get row and column indices. Row indices are
     # the neighborhood index:
@@ -112,15 +103,15 @@ def _create_sample_and_nhood_based_cell_mask(
     # now set row,col pairs for each cell-neighborhood pair to 1
     cell_nhood_mask_full[row_indices, col_indices] = 1
     # subset to query cells only (i.e. exclude reference cells):
-    cell_nhood_mask = cell_nhood_mask_full[:, adata_obs[ref_q_key] == q_cat]
+    cell_nhood_mask = cell_nhood_mask_full[:, params.adata.obs[params.ref_q_key] == params.q_cat]
     # 2. CREATE SAMPLE-BASED MASK
     # now calculate sample mask, specifying for each query cell from which sample it came
     cell_sample_mask = np.zeros((n_samples_q, n_query_cells), dtype=int)
     # check that samples are sorted alphabetically, otherwise the np.searchsorted function will
     # mess up the results completely:
-    if not samples_q == sorted(samples_q):
+    if not params.samples_q == sorted(params.samples_q):
         raise ValueError("List of samples samples_q should be in alphabetical order!")
-    sample_idc_per_cell = np.searchsorted(samples_q, adata_obs.loc[query_cells, sample_key])
+    sample_idc_per_cell = np.searchsorted(params.samples_q, params.adata.obs.loc[query_cells, params.sample_key])
     cell_sample_mask[sample_idc_per_cell, np.arange(n_query_cells)] = 1
     # Now combine the two, creating a mask per per cell, such that only sample-neighborhood
     # pairs that belong to the cell are set to 1 (True), i.e. for each cell, set the values
@@ -132,7 +123,11 @@ def _create_sample_and_nhood_based_cell_mask(
     return mask, cell_nhood_mask, cell_sample_mask
 
 
-def _get_per_cell_filtering_info(mapqc_scores, cell_nhood_mask, nhood_info_df):
+def _get_per_cell_filtering_info(
+    mapqc_scores: np.ndarray,
+    cell_nhood_mask: np.ndarray,
+    nhood_info_df: pd.DataFrame,
+) -> np.ndarray:
     """Extract filtering info for each cell based on its neighborhoods."""
     cell_filtering_info = np.full_like(
         mapqc_scores, fill_value=np.nan

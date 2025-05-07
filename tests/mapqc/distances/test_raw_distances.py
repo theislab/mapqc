@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
 import pytest
+import scanpy as sc
 
 from mapqc.distances.raw_distances import (
     _distance_between_cell_sets,
     pairwise_sample_distances,
 )
+from mapqc.params import MapQCParams
 
 
 @pytest.fixture
@@ -138,7 +140,12 @@ def test_distance_between_cell_sets_invalid_precomputed_shape():
     wrong_shape = np.zeros((3, 2))  # Wrong shape
 
     with pytest.raises(ValueError):
-        _distance_between_cell_sets(cell_set_1, cell_set_2, precomputed_distance_matrix=wrong_shape)
+        _distance_between_cell_sets(
+            cell_set_1,
+            cell_set_2,
+            precomputed_distance_matrix=wrong_shape,
+            distance_metric="energy_distance",
+        )
 
 
 def test_pairwise_sample_distances_simple(cell_info):
@@ -158,16 +165,23 @@ def test_pairwise_sample_distances_simple(cell_info):
     samples_q = [
         s for s in cell_info["s"] if ((cell_info["s"].value_counts()[s] >= min_n_cells) and (s in samples_q_all))
     ]
-    # calculate simplest pairwise distances (i.e. also keep
-    # pairs from same study)
-    test_out = pairwise_sample_distances(
-        emb=cell_info.loc[:, ["emb0", "emb1"]].values,
-        obs=cell_info,
-        samples_r_all=samples_r_all,
-        samples_q_all=samples_q_all,
+    # create params:
+    params = MapQCParams(
+        adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info),
+        adata_emb_loc="X",
+        samples_r=samples_r_all,
+        samples_q=samples_q_all,
         sample_key="s",
         min_n_cells=min_n_cells,
         exclude_same_study=False,
+        distance_metric="energy_distance",
+    )
+    # calculate simplest pairwise distances (i.e. also keep
+    # pairs from same study)
+    test_out = pairwise_sample_distances(
+        params=params,
+        emb=cell_info.loc[:, ["emb0", "emb1"]].values,
+        obs=cell_info,
     )
     # expectations:
     # first calculate pairwise distances semi-manually:
@@ -177,6 +191,7 @@ def test_pairwise_sample_distances_simple(cell_info):
             dists_manual[(s1, s2)] = _distance_between_cell_sets(
                 cell_set_1=cell_info.loc[cell_info["s"] == s1, ["emb0", "emb1"]].values,
                 cell_set_2=cell_info.loc[cell_info["s"] == s2, ["emb0", "emb1"]].values,
+                distance_metric="energy_distance",
             )
     # expectations are:
     # samples with all nans: s0, s6 (both not in nhood),
@@ -220,16 +235,13 @@ def test_pairwise_sample_distances_simple(cell_info):
     np.testing.assert_almost_equal(test_out, expected_out.values)
     # now test with exclude_same_study=True
     sample_info = cell_info.groupby("s").agg({"paper": "first"})
+    params.exclude_same_study = True
+    params.study_key = "paper"
     test_out_2 = pairwise_sample_distances(
+        params=params,
+        sample_df=sample_info,
         emb=cell_info.loc[:, ["emb0", "emb1"]].values,
         obs=cell_info,
-        samples_r_all=samples_r_all,
-        samples_q_all=samples_q_all,
-        sample_key="s",
-        min_n_cells=min_n_cells,
-        exclude_same_study=True,
-        study_key="paper",
-        sample_df=sample_info,
     )
     # expectations:
     # first copy original expected out:

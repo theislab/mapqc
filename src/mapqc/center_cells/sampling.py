@@ -1,39 +1,25 @@
 import numpy as np
 import pandas as pd
 
+from mapqc.params import MapQCParams
+
 
 def sample_center_cells_by_group(
-    adata_obs: pd.DataFrame,
-    ref_q_key: str,
-    q_cat: str,
-    grouping_cat: str,
-    n_cells: int,
-    seed: int,
+    params: MapQCParams,
 ) -> list:
     """Sample n query cells, based on cell proportions per group for both reference and query.
 
     Parameters
     ----------
-    ref_q_key: str
-        Column name of adata_obs that indicates reference or query cells.
-    q_cat: str
-        Category name of query cells in ref_q_key column.
-    adata_obs: pd.DataFrame
-        DataFrame with cell metadata.
-    grouping_cat: str
-        Column name in adata_obs of grouping variable.
-    n_cells: int
-        Number of cells to sample from the query.
-    seed: int
-        Seed for random number generator.
+    params: MapQCParams parameters object.
 
     Returns
     -------
     sampled_cells: list
-        List of cell indices (row names of adata_obs) that were sampled.
+        List of cell indices (row names of adata.obs) that were sampled.
     """
     # calculate proportions per group for reference and query:
-    ref_q_group_n = adata_obs.groupby([ref_q_key, grouping_cat], observed=True).size().unstack()
+    ref_q_group_n = params.adata.obs.groupby([params.ref_q_key, params.grouping_key], observed=True).size().unstack()
     ref_q_group_n = ref_q_group_n.fillna(0)
     ref_q_group_props = ref_q_group_n.div(ref_q_group_n.sum(axis=1), axis=0)
     # as the target group proportions, take the mean of the reference and
@@ -42,16 +28,16 @@ def sample_center_cells_by_group(
     # import pdb; pdb.set_trace()
     target_props = ref_q_group_props.mean(axis=0)
     # calculate the target number of cells per group:
-    target_n_cells_per_group = np.rint(target_props * n_cells).astype(int)
+    target_n_cells_per_group = np.rint(target_props * params.n_nhoods).astype(int)
     # in case we don't have enough cells for a specific group in the query,
     # (e.g. because a cluster contained no or few query cells), we need
     # to sample those from the remaining groups.
     # If we do have enough cells, this will just return the target_n_cells_per_group.
     target_n_cells_per_group = _redistribute_missing_cells(
-        n_cells, target_n_cells_per_group, target_props, ref_q_group_n.loc[q_cat, :]
+        params.n_nhoods, target_n_cells_per_group, target_props, ref_q_group_n.loc[params.q_cat, :]
     )
     # correct for rounding errors:
-    n_too_many_cells = (target_n_cells_per_group.sum() - n_cells).astype(int)
+    n_too_many_cells = (target_n_cells_per_group.sum() - params.n_nhoods).astype(int)
     if n_too_many_cells > 0:
         # remove cells from groups, starting with the groups with the
         groups_to_remove_from = target_n_cells_per_group.sort_values(ascending=False).index[:n_too_many_cells]
@@ -59,8 +45,10 @@ def sample_center_cells_by_group(
     # now sample query cells from each group:
     sampled_cells = pd.concat(
         [
-            group.sample(target_n_cells_per_group[group_name], replace=False, random_state=seed)
-            for group_name, group in adata_obs.loc[adata_obs[ref_q_key] == q_cat].groupby(grouping_cat, observed=True)
+            group.sample(target_n_cells_per_group[group_name], replace=False, random_state=params.seed)
+            for group_name, group in params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat].groupby(
+                params.grouping_key, observed=True
+            )
         ]
     ).index.tolist()
     # return result:

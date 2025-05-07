@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
 import pytest
+import scanpy as sc
 from scipy.spatial.distance import cdist
 
 from mapqc.distances.raw_distances import pairwise_sample_distances
+from mapqc.params import MapQCParams
 from mapqc.process_nhood import process_neighborhood
 
 
@@ -55,24 +57,31 @@ def test_nhood_passing_filter(cell_info):
     # )
     # cell_info['dist_to_cc'] = dists[0]
     # cell_info.sort_values(by='dist_to_cc') # print/show sorted
-    samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
-    samples_q_all = ["s3", "s2"]
-    nhood_info_dict, pw_dists = process_neighborhood(
-        center_cell=center_cell,
-        adata_emb=cell_info.loc[:, ["emb0", "emb1"]].values,
-        adata_obs=cell_info.loc[:, ["s", "re_qu"]],
-        samples_r_all=samples_r_all,
-        samples_q_all=samples_q_all,
-        k_min=5,
-        k_max=9,
-        sample_key="s",
+    # samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
+    # samples_q_all = ["s3", "s2"]
+    params = MapQCParams(
+        adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info.loc[:, ["s", "re_qu"]]),
+        adata_emb_loc="X",
         ref_q_key="re_qu",
         q_cat="qu",
         r_cat="re",
-        min_n_cells=2,
-        min_n_samples_r=2,
+        sample_key="s",
+        k_min=5,
+        k_max=9,
         exclude_same_study=False,
         adaptive_k_margin=0.1,
+        samples_r=["s1", "s5", "s4"],  # ["s1", "s4", "s5"], # have to be ordered alphabetically
+        samples_q=[
+            "s3",
+            "s2",
+        ],  # ["s2", "s3"], # note that both of these sample lists represent all samples in the data
+        min_n_cells=2,
+        min_n_samples_r=2,
+        adapt_k=True,
+    )
+    nhood_info_dict, pw_dists = process_neighborhood(
+        params=params,
+        center_cell=center_cell,
     )
     # Expected output (use sorted df as in commented-out code above)
     # Note that as we have different k_max from k_min, k can be adapted.
@@ -102,13 +111,9 @@ def test_nhood_passing_filter(cell_info):
     # output is the same as the output we get here
     expected_pw_dist_input = cell_info.iloc[knn_idc, :]
     expected_pw_dists = pairwise_sample_distances(
+        params=params,
         emb=expected_pw_dist_input.loc[:, ["emb0", "emb1"]].values,
         obs=expected_pw_dist_input.loc[:, ["s", "re_qu"]],
-        samples_r_all=samples_r_all,
-        samples_q_all=samples_q_all,
-        sample_key="s",
-        min_n_cells=2,
-        exclude_same_study=False,
     )
     np.testing.assert_almost_equal(pw_dists, expected_pw_dists)
 
@@ -124,22 +129,25 @@ def test_nhood_failing_query_filter(cell_info):
     center_cell = "c6"
     samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     samples_q_all = ["s3", "s2"]
-    nhood_info_dict, pw_dists = process_neighborhood(
-        center_cell=center_cell,
-        adata_emb=cell_info.loc[:, ["emb0", "emb1"]].values,
-        adata_obs=cell_info.loc[:, ["s", "re_qu"]],
-        samples_r_all=samples_r_all,
-        samples_q_all=samples_q_all,
-        k_min=kmin,
-        k_max=9,
-        sample_key="s",
+    params = MapQCParams(
+        adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info.loc[:, ["s", "re_qu"]]),
+        adata_emb_loc="X",
         ref_q_key="re_qu",
         q_cat="qu",
         r_cat="re",
+        sample_key="s",
+        k_min=kmin,
+        k_max=9,
         min_n_cells=3,
         min_n_samples_r=2,
         exclude_same_study=False,
         adaptive_k_margin=0.1,
+        samples_r=samples_r_all,
+        samples_q=samples_q_all,
+    )
+    nhood_info_dict, pw_dists = process_neighborhood(
+        params=params,
+        center_cell=center_cell,
     )
     # this should fail, as query only has a sample with three cells
     # at cell number 10 (idx 9)
@@ -171,23 +179,26 @@ def test_nhood_failing_reference_filter(cell_info):
     samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     samples_q_all = ["s3", "s2"]
     kmin = 5
-    nhood_info_dict, pw_dists = process_neighborhood(
-        center_cell=center_cell,
-        adata_emb=cell_info.loc[:, ["emb0", "emb1"]].values,
-        adata_obs=cell_info.loc[:, ["s", "re_qu", "paper"]],
-        samples_r_all=samples_r_all,
-        samples_q_all=samples_q_all,
-        k_min=kmin,
-        k_max=10,
-        sample_key="s",
+    params = MapQCParams(
+        adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info.loc[:, ["s", "re_qu", "paper"]]),
+        adata_emb_loc="X",
         ref_q_key="re_qu",
         q_cat="qu",
         r_cat="re",
-        min_n_cells=2,
-        min_n_samples_r=2,
+        sample_key="s",
+        k_min=kmin,
+        k_max=10,
         exclude_same_study=True,
         adaptive_k_margin=0.1,
         study_key="paper",
+        samples_r=samples_r_all,
+        samples_q=samples_q_all,
+        min_n_samples_r=2,
+        min_n_cells=2,
+    )
+    nhood_info_dict, pw_dists = process_neighborhood(
+        params=params,
+        center_cell=center_cell,
     )
     # Expectation:
     # As we now do not count samples from the same study, our first two

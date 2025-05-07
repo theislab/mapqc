@@ -7,6 +7,7 @@ from mapqc.mapqc_scores import (
     _get_per_cell_filtering_info,
     calculate_mapqc_scores,
 )
+from mapqc.params import MapQCParams
 
 
 def test_mapqc_scores(input_data_dir, intermediate_data_dir, expected_data_dir):
@@ -22,15 +23,18 @@ def test_mapqc_scores(input_data_dir, intermediate_data_dir, expected_data_dir):
     ref_q_key = "r_or_q"
     q_cat = "q"
     sample_key = "sample"
-    samples_q = sorted(adata.obs.loc[adata.obs[ref_q_key] == q_cat, sample_key].unique().tolist())
-    mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
-        sample_dist_to_ref_per_nhood=dists_to_ref,
-        nhood_info_df=nhood_info,
-        adata_obs=adata.obs,
+    params = MapQCParams(
+        adata=adata,
         ref_q_key=ref_q_key,
         q_cat=q_cat,
         sample_key=sample_key,
-        samples_q=samples_q,
+        samples_q=sorted(adata.obs.loc[adata.obs[ref_q_key] == q_cat, sample_key].unique().tolist()),
+    )
+    # samples_q = sorted(adata.obs.loc[adata.obs[ref_q_key] == q_cat, sample_key].unique().tolist())
+    mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
+        params=params,
+        sample_dist_to_ref_per_nhood=dists_to_ref,
+        nhood_info_df=nhood_info,
     )
     # check that the output matches the expected output:
     assert np.array_equal(mapqc_scores, mapqc_scores_exp, equal_nan=True)
@@ -65,18 +69,23 @@ def test_create_sample_and_nhood_based_cell_mask():
     sample_mask[2, [6]] = 1  # last query cell in sample D
     # now calculate full mask, which should have shape n_query_samples, n_nhoods, n_query_cells
     full_mask = nhood_mask[np.newaxis, :, :] * sample_mask[:, np.newaxis, :]
+    # To prevent scanpy warning, we convert our float indices to strings:
+    obs.index = obs.index.astype(str)
     # now calculate true output using function:
+    params = MapQCParams(
+        adata=sc.AnnData(obs=obs),
+        ref_q_key="ref_or_que",
+        q_cat="que",
+        sample_key="sample_id",
+        samples_q=["B", "C", "D"],  # should be sorted alphabetically
+    )
     (
         true_mask,
         true_nhood_mask,
         true_sample_mask,
     ) = _create_sample_and_nhood_based_cell_mask(
-        obs,
-        nhood_info_df,
-        ref_q_key="ref_or_que",
-        q_cat="que",
-        sample_key="sample_id",
-        samples_q=["B", "C", "D"],  # should be sorted alphabetically
+        params=params,
+        nhood_info_df=nhood_info_df,
     )
     # check that the output matches the expected output:
     assert np.array_equal(full_mask, true_mask)

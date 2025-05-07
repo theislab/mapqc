@@ -28,6 +28,7 @@ def validate_input_params(params: MapQCParams):
     _check_min_n_cells_and_samples(params.min_n_cells, params.min_n_samples_r)
     _check_grouping_key(params.adata, params.grouping_key)
     _check_distance_metric(params.distance_metric)
+    _check_seed(params.seed)
 
 
 def _check_adata(adata, adata_emb_loc):
@@ -180,3 +181,12 @@ def _check_distance_metric(distance_metric):
     """Check if distance_metric is valid"""
     if distance_metric not in ["energy_distance", "pairwise_euclidean"]:
         raise ValueError("distance_metric must be one of 'energy_distance' or 'pairwise_euclidean'.")
+
+
+def _check_seed(seed):
+    """Check if seed is valid"""
+    if seed is not None:
+        if not isinstance(seed, int):
+            raise ValueError("seed must be an integer.")
+        if seed < 0:
+            raise ValueError("seed must be greater than 0.")

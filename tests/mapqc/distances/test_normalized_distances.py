@@ -9,6 +9,7 @@ from mapqc.distances.normalized_distances import (
     _mask_rows_and_columns,
     get_normalized_dists_to_ref,
 )
+from mapqc.params import MapQCParams
 
 
 @pytest.fixture
@@ -128,8 +129,10 @@ def test_get_normalized_dists_to_ref(pw_dists_triu, pw_dists_valid, r_dists_to_r
     r_dists_to_ref_outliers_removed = np.nanmean(masked_pw_dists_valid[:, :n_samples_ref, :], axis=0)
     baseline_mean = np.nanmean(r_dists_to_ref_outliers_removed, axis=0)
     baseline_stdev = np.nanstd(r_dists_to_ref_outliers_removed, axis=0, ddof=1)
+    # create params object:
+    params = MapQCParams(samples_r=list(range(n_samples_ref)))
     # get output from normalize_pw_dists:
-    normalized_dists_to_ref = get_normalized_dists_to_ref(pw_dists_triu, ref_samples=list(range(n_samples_ref)))
+    normalized_dists_to_ref = get_normalized_dists_to_ref(params=params, pw_dists_triu=pw_dists_triu)
     # predict individual values (in case our matrix subtraction/division below is incorrect):
     # note that neighborhood 1 in the row_masked_pw_dists is neighborhood 2 in the original
     # pw_dists tensor, as we removed neighborhood 1 from the original tensor as it had

@@ -2,22 +2,24 @@ import warnings
 
 import numpy as np
 
+from mapqc.params import MapQCParams
+
 
 def get_normalized_dists_to_ref(
+    params: MapQCParams,
     pw_dists_triu: np.ndarray,
-    ref_samples: list[str],
 ) -> np.ndarray:
     """Calculate normalized distance to the reference for each sample in each nhood.
 
     Parameters
     ----------
+    params: MapQCParams
+        MapQC parameters object
     pw_dists_triu: np.ndarray
         Tensor of shape (n_ref_samples, n_ref_samples + n_query_samples, n_neighborhoods)
         containing pairwise distances between samples for each neighborhood. Neighborhoods
         that did not pass filtering are expected to have all np.nans. Order of samples
         in rows and columns is fixed (across this package).
-    ref_samples: list[str]
-        List of reference sample names, across the entire dataset.
 
     Returns
     -------
@@ -28,7 +30,7 @@ def get_normalized_dists_to_ref(
         the mean and standard deviation of the reference samples' distance to the
         reference, excluding outliers (see code for outlier definition).
     """
-    n_ref_samples = len(ref_samples)
+    n_ref_samples = len(params.samples_r)
     # note that we were working with only the upper triangle
     # (hence triu suffix above) of the pairwise distances between reference
     # samples for each neighborhood - the rest was set to nan for
