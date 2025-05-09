@@ -74,11 +74,25 @@ def process_neighborhood(
         sample_df=sample_df,
     )
     if not filter_pass:
+        # get query samples in neighborhood that have sufficient number of cells:
+        knn_idc = cell_idc_by_dist[: params.k_min]
+        query_sample_cell_counts = (
+            params.adata.obs.iloc[knn_idc, :]
+            .groupby(params.sample_key, observed=True)
+            .agg({params.ref_q_key: "first", params.sample_key: "size"})
+        )
+        samples_q_sufficient_cells = sorted(
+            query_sample_cell_counts.index[
+                (query_sample_cell_counts[params.ref_q_key] == params.q_cat)
+                & (query_sample_cell_counts[params.sample_key] >= params.min_n_cells)
+            ]
+        )
         nhood_info_dict = {
             "center_cell": center_cell,
             "k": None,
-            "knn_idc": cell_idc_by_dist[: params.k_min],
+            "knn_idc": knn_idc,
             "filter_info": filter_info,
+            "samples_q": samples_q_sufficient_cells,
         }
         nhood_sample_pw_dists = np.full((n_samples_r_all, n_samples_r_all + n_samples_q_all), np.nan)
         return (nhood_info_dict, nhood_sample_pw_dists)
@@ -93,7 +107,7 @@ def process_neighborhood(
             sample_df = None
             # study_key = None
         # calculate pairwise distances between all samples in the neighborhood
-        nhood_sample_pw_dists = pairwise_sample_distances(
+        samples_q, nhood_sample_pw_dists = pairwise_sample_distances(
             params=params,
             emb=nhood_emb,
             obs=nhood_obs,
@@ -104,5 +118,6 @@ def process_neighborhood(
             "k": adapted_k,
             "knn_idc": knn_idc,
             "filter_info": filter_info,
+            "samples_q": samples_q,
         }
         return (nhood_info_dict, nhood_sample_pw_dists)

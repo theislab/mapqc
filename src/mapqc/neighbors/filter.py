@@ -40,7 +40,7 @@ def filter_and_get_min_k_query(
     # Note that we add a +1 because of python indexing: 1st instance means
     # second observation, i.e. k=2 neighbors needed
     min_k_query = min(sample_nth_occ_idc.values) + 1  #
-    if min_k_query < params.k_min:
+    if min_k_query <= params.k_min:
         return (True, params.k_min, "pass")
     else:
         # note that if we adapt the k, we add a margin to not limit the neighborhood

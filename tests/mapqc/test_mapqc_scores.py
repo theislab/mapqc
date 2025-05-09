@@ -20,15 +20,27 @@ def test_mapqc_scores(input_data_dir, intermediate_data_dir, expected_data_dir):
     mapqc_scores_exp = np.load(expected_data_dir / "mapqc_scores.npy")
     filtering_info_per_cell_exp = np.load(expected_data_dir / "filtering_info_per_cell.npy", allow_pickle=True)
     # calculate mapqc_socres
-    ref_q_key = "r_or_q"
-    q_cat = "q"
-    sample_key = "sample"
     params = MapQCParams(
         adata=adata,
-        ref_q_key=ref_q_key,
-        q_cat=q_cat,
-        sample_key=sample_key,
-        samples_q=sorted(adata.obs.loc[adata.obs[ref_q_key] == q_cat, sample_key].unique().tolist()),
+        ref_q_key="r_or_q",
+        r_cat="r",
+        q_cat="q",
+        grouping_key="leiden",
+        n_nhoods=10,
+        seed=42,
+        adata_emb_loc="X",
+        k_min=100,
+        k_max=120,
+        sample_key="sample",
+        min_n_cells=3,
+        min_n_samples_r=3,
+        exclude_same_study=True,
+        study_key="study",
+        adaptive_k_margin=0.1,
+        adapt_k=True,
+        distance_metric="energy_distance",
+        samples_r=sorted(adata.obs.loc[adata.obs.r_or_q == "r", "sample"].unique().tolist()),
+        samples_q=sorted(adata.obs.loc[adata.obs.r_or_q == "q", "sample"].unique().tolist()),
     )
     # samples_q = sorted(adata.obs.loc[adata.obs[ref_q_key] == q_cat, sample_key].unique().tolist())
     mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
@@ -53,7 +65,9 @@ def test_create_sample_and_nhood_based_cell_mask():
         index=range(1, 11),
     )
     # create nhood info df, with knn_idc specifying which cells are in each neighborhood (2 neighborhoods in total)
-    nhood_info_df = pd.DataFrame(data={"knn_idc": [[3, 4, 7], [3, 5, 6, 7, 8]]}, index=[4, 7])
+    nhood_info_df = pd.DataFrame(
+        data={"knn_idc": [[3, 4, 7], [3, 5, 6, 7, 8]], "samples_q": [["B", "C"], ["B", "C"]]}, index=[4, 7]
+    )
     # expected output (there are only 7 query cells):
     nhood_mask = np.zeros((2, 7))
     # set values to 1 for neighborhoods in which cells occur:

@@ -78,6 +78,7 @@ def test_nhood_passing_filter(cell_info):
         min_n_cells=2,
         min_n_samples_r=2,
         adapt_k=True,
+        distance_metric="energy_distance",
     )
     nhood_info_dict, pw_dists = process_neighborhood(
         params=params,
@@ -90,7 +91,7 @@ def test_nhood_passing_filter(cell_info):
     # Reference minimum n samples (with at least min_n_cells each)
     # fulfilled at idx 3 (4th cell) (note that these are from the same study).
     # So k expected to be adapted to (7 + 1) * 1.1 = 9 (rounded up)
-    expected_nhood_info_dict = {"center_cell": center_cell, "k": 9, "filter_info": "pass"}
+    expected_nhood_info_dict = {"center_cell": center_cell, "k": 9, "filter_info": "pass", "samples_q": ["s2"]}
     # and for the knn idc, let's calculate distances to center cell:
     dists = cdist(
         np.array(cell_info.loc[center_cell, ["emb0", "emb1"]].values[None, :], dtype=float),
@@ -110,11 +111,12 @@ def test_nhood_passing_filter(cell_info):
     # pass that through the pw distance function and check that the
     # output is the same as the output we get here
     expected_pw_dist_input = cell_info.iloc[knn_idc, :]
-    expected_pw_dists = pairwise_sample_distances(
+    expected_samples_q, expected_pw_dists = pairwise_sample_distances(
         params=params,
         emb=expected_pw_dist_input.loc[:, ["emb0", "emb1"]].values,
         obs=expected_pw_dist_input.loc[:, ["s", "re_qu"]],
     )
+    assert np.array_equal(expected_samples_q, nhood_info_dict["samples_q"])
     np.testing.assert_almost_equal(pw_dists, expected_pw_dists)
 
 
@@ -144,6 +146,7 @@ def test_nhood_failing_query_filter(cell_info):
         adaptive_k_margin=0.1,
         samples_r=samples_r_all,
         samples_q=samples_q_all,
+        distance_metric="energy_distance",
     )
     nhood_info_dict, pw_dists = process_neighborhood(
         params=params,
@@ -155,6 +158,7 @@ def test_nhood_failing_query_filter(cell_info):
         "center_cell": center_cell,
         "k": None,
         "filter_info": "not enough query cells",
+        "samples_q": [],
     }
     # for the knn idc, let's calculate distances to center cell:
     dists = cdist(
@@ -195,6 +199,7 @@ def test_nhood_failing_reference_filter(cell_info):
         samples_q=samples_q_all,
         min_n_samples_r=2,
         min_n_cells=2,
+        distance_metric="energy_distance",
     )
     nhood_info_dict, pw_dists = process_neighborhood(
         params=params,
@@ -214,6 +219,7 @@ def test_nhood_failing_reference_filter(cell_info):
         "center_cell": center_cell,
         "k": None,
         "filter_info": "not enough reference samples from different studies",
+        "samples_q": [],
     }
     # for the knn idc, let's calculate distances to center cell:
     dists = cdist(

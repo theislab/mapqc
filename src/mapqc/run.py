@@ -33,7 +33,6 @@ def run_mapqc(
     study_key: str = None,
     exclude_same_study: bool = True,
     grouping_key: str = None,
-    adaptive_k_margin: float = 0.1,
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
     seed: int = None,
     overwrite: bool = False,
@@ -41,10 +40,16 @@ def run_mapqc(
     """
     Run mapqc on an AnnData object.
 
+    This function modifies the input AnnData object in-place by adding two new columns to adata.obs:
+    - 'mapqc_score': Contains the mapqc scores for query cells (NaN for reference cells)
+    - 'mapqc_filtering': Contains filtering information for query cells (None for reference cells)
+    It also adds a dictionary including the input parameter values to adata.uns['mapqc_params']
+
     Parameters
     ----------
     adata : sc.AnnData
         The AnnData object including both the reference and the query cells.
+        This object will be modified in-place.
     adata_emb_loc : str
         The location of the embeddings in adata.obsm or "X" if the embedding is in adata.X
     ref_q_key : str
@@ -60,30 +65,40 @@ def run_mapqc(
     k_min : int
         Minimum number of cells per neighborhood
     k_max : int
-        Maximum number of cells per neighborhood
+        Maximum number of cells per neighborhood, if the neighborhood of size k_min does not fulfill
+        filtering criteria.
     min_n_cells : int
         Minimum number of cells required per sample, in a neighborhood
     min_n_samples_r : int
         Minimum number of reference samples (with at least min_n_cells cells) required per neighborhood
     exclude_same_study : bool = True
         Whether to exclude samples from the same study when calculating distances
-        between reference samples.
+        between reference samples. To prevent bias in inter-sample distances within
+        the reference, we recommend excluding inter-sample distances between samples
+        from the same study, i.e. setting this argument to True.
     study_key : str = None
-        Key in adata.obs that contains study identifiers
+        Key in adata.obs that contains study identifiers (needed if exclude_same_study is True)
     grouping_key : str = None
-        Key in adata.obs that contains grouping information
-    adaptive_k_margin : float = 0.1
-        Margin for adaptive k selection
+        Key in adata.obs that contains grouping information, which will be used to sample
+        center cells (i.e. the centers of neighborhoods). If not provided, center cells will
+        be sampled randomly from the query. If provided, center cells will be sampled based
+        on query and reference cell proportions per group of the grouping key. This can be
+        set to e.g. a clustering performed on the joint reference and query, or a (preliminary)
+        cell type annotation of reference and query.
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance"
         Distance metric to use to calculate distances between samples (i.e. between
         two sets of cells).
     seed: int = None
-        Seed for random number generator.
+        Seed for random number generator. Set the seed to ensure reproducibility of results.
+    overwrite: bool = False
+        Whether to overwrite existing mapqc_score and mapqc_filtering columns in adata.obs.
 
     Returns
     -------
-    tuple
-        (mapqc_scores, filtering_info_per_cell)
+    None
+        This function modifies the input AnnData object in-place by adding 'mapqc_score' and
+        'mapqc_filtering' columns to adata.obs. It furthermore adds a dictionary including the
+        input parameter values to adata.uns['mapqc_params']. No values are returned.
     """
     # Create parameter object for internal use
     params = MapQCParams(
@@ -101,7 +116,7 @@ def run_mapqc(
         exclude_same_study=exclude_same_study,
         study_key=study_key,
         grouping_key=grouping_key,
-        adaptive_k_margin=adaptive_k_margin,
+        adaptive_k_margin=0.1,  # default value
         distance_metric=distance_metric,
         seed=seed,
         overwrite=overwrite,
@@ -109,13 +124,6 @@ def run_mapqc(
 
     # validate input
     validate_input_params(params)
-
-    # set adapt_k parameter:
-    if params.k_max > params.k_min:
-        params.adapt_k = True
-    else:
-        params.adapt_k = False
-
     # now prepare run
     center_cells = sample_center_cells_by_group(
         params=params,
@@ -130,14 +138,7 @@ def run_mapqc(
     params.samples_r = samples_r
     params.samples_q = samples_q
 
-    nhood_info = pd.DataFrame(
-        columns=[
-            "nhood_number",
-            "filter_info",
-            "k",
-            "knn_idc",
-        ]
-    )
+    nhood_info = pd.DataFrame(columns=["nhood_number", "filter_info", "k", "knn_idc", "samples_q"])
     dists = np.full(
         shape=(len(samples_r), len(samples_r) + len(samples_q), len(center_cells)),
         fill_value=np.nan,
@@ -153,11 +154,14 @@ def run_mapqc(
         sample_dist_to_ref_per_nhood=dists_to_ref,
         nhood_info_df=nhood_info,
     )
-    # modify input adata object
+    # modify input adata object, adding mapqc scores and filtering info to adata.obs,
+    # and adding parameters to adata.uns
     params.adata.obs["mapqc_score"] = np.nan
     params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, "mapqc_score"] = mapqc_scores
     params.adata.obs["mapqc_filtering"] = None
     params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, "mapqc_filtering"] = (
         filtering_info_per_cell
     )
-    # return mapqc_scores, filtering_info_per_cell
+    params_to_leave_out = ["adata", "overwrite", "samples_r", "samples_q"]
+    params.adata.uns["mapqc_params"] = {k: v for k, v in params.__dict__.items() if k not in params_to_leave_out}
+    return nhood_info

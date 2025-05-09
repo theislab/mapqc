@@ -42,3 +42,17 @@ class MapQCParams:
     overwrite: bool | None = None
     samples_r: list[str] | None = None
     samples_q: list[str] | None = None
+
+    def __post_init__(self):
+        # set adapt_k parameter
+        if self.k_min is not None and self.k_max is not None:
+            if self.k_min < self.k_max:
+                if not self.adapt_k:
+                    raise ValueError("adapt_k must be True if k_min < k_max")
+                self.adapt_k = True
+            elif self.k_min == self.k_max:
+                if self.adapt_k:
+                    raise ValueError("adapt_k must be False if k_min == k_max")
+                self.adapt_k = False
+            else:
+                raise ValueError("k_min must be less than or equal to k_max")

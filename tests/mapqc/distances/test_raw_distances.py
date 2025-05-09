@@ -165,6 +165,7 @@ def test_pairwise_sample_distances_simple(cell_info):
     samples_q = [
         s for s in cell_info["s"] if ((cell_info["s"].value_counts()[s] >= min_n_cells) and (s in samples_q_all))
     ]
+    samples_q_set = sorted(set(samples_q))
     # create params:
     params = MapQCParams(
         adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info),
@@ -178,7 +179,7 @@ def test_pairwise_sample_distances_simple(cell_info):
     )
     # calculate simplest pairwise distances (i.e. also keep
     # pairs from same study)
-    test_out = pairwise_sample_distances(
+    test_samples_q, test_out = pairwise_sample_distances(
         params=params,
         emb=cell_info.loc[:, ["emb0", "emb1"]].values,
         obs=cell_info,
@@ -232,12 +233,13 @@ def test_pairwise_sample_distances_simple(cell_info):
         index=samples_r_all,
     )
     # check that the two are the same
+    assert np.array_equal(test_samples_q, samples_q_set)
     np.testing.assert_almost_equal(test_out, expected_out.values)
     # now test with exclude_same_study=True
     sample_info = cell_info.groupby("s").agg({"paper": "first"})
     params.exclude_same_study = True
     params.study_key = "paper"
-    test_out_2 = pairwise_sample_distances(
+    test_samples_q_2, test_out_2 = pairwise_sample_distances(
         params=params,
         sample_df=sample_info,
         emb=cell_info.loc[:, ["emb0", "emb1"]].values,
@@ -259,4 +261,5 @@ def test_pairwise_sample_distances_simple(cell_info):
     print(expected_out_2)
     print(pd.DataFrame(data=test_out_2, index=samples_r_all, columns=samples_r_all + samples_q_all))
     # check that the two are the same
+    assert np.array_equal(test_samples_q_2, samples_q_set)
     np.testing.assert_almost_equal(test_out_2, expected_out_2.values)

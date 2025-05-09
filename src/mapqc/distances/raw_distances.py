@@ -13,7 +13,7 @@ def pairwise_sample_distances(
     emb: np.ndarray,
     obs: pd.DataFrame,
     sample_df: pd.DataFrame = None,
-) -> np.ndarray:
+) -> tuple[list, np.ndarray]:
     """Calculate pairwise distances between samples in the neighborhood.
 
     Parameters
@@ -32,14 +32,17 @@ def pairwise_sample_distances(
 
     Returns
     -------
-    pw_dists: np.ndarray
-        Array of shape (n_samples_r_all, n_samples_r_all + n_samples_q_all) containing pairwise distances
-        between all samples in the neighborhood, for all pairs that passed filtering, otherwise nan.
-        Filtering includes:
-        - minimum number of cells per sample
-        - exclusion of pairs of samples from the same study if exclude_same_study is True
-        - lower triangle set to nan to save computation time (dist(i,j) = dist(j,i))
-        - diagonal set to nan, as distance to self should be excluded (always 0 for e-distance)
+    tuple(samples_q, pw_dists)
+        samples_q: list[str]
+            List of query samples that passed the min_n_cells filter.
+        pw_dists: np.ndarray
+            Array of shape (n_samples_r_all, n_samples_r_all + n_samples_q_all) containing pairwise distances
+            between all samples in the neighborhood, for all pairs that passed filtering, otherwise nan.
+            Filtering includes:
+            - minimum number of cells per sample
+            - exclusion of pairs of samples from the same study if exclude_same_study is True
+            - lower triangle set to nan to save computation time (dist(i,j) = dist(j,i))
+            - diagonal set to nan, as distance to self should be excluded (always 0 for e-distance)
     """
     # check which samples pass min_n_cells filter, we only want to include
     # those when calculating pairwise distances
@@ -97,7 +100,7 @@ def pairwise_sample_distances(
                         emb_s2 = emb[s2_cell_idc]
                         # and calculate distance between samples
                         pw_dists[i, j] = _distance_between_cell_sets(emb_s1, emb_s2, params.distance_metric)
-    return pw_dists
+    return samples_q, pw_dists
 
 
 def _distance_between_cell_sets(
@@ -155,3 +158,5 @@ def _distance_between_cell_sets(
         mask_2 = ~np.eye(n_cells_2, dtype=bool)
         sigma_2 = self_dists_2[mask_2].mean()
         return 2 * delta - sigma_1 - sigma_2
+    else:
+        raise ValueError(f"Invalid distance metric: {distance_metric}")

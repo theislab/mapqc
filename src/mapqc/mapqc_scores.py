@@ -83,12 +83,13 @@ def _create_sample_and_nhood_based_cell_mask(
     query_cells = params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, :].index.values
     n_query_cells = len(query_cells)
     # 1. CREATE NEIGHBORHOOD-BASED MASK
-    # start nhood_mask with full dimensionality, as we get index numbers of
-    # cells in each neighborhood based on indices of the full adata.
-    cell_nhood_mask_full = np.zeros((n_nhoods, params.adata.shape[0]), dtype=int)
+    # start nhood_mask with n columns (ncells) to full number of cells (instead of query only),
+    # as we get index numbers of cells in each neighborhood based on indices of the full adata.
+    # 1a: set neighborhood-cell pairs to 1 if cell occurred in neighborhood
     # now set values representing the neighborhood(s) that a cell was part of as 1
     # For each entry to set, get row and column indices. Row indices are
     # the neighborhood index:
+    cell_nhood_mask_cell_in_nhood = np.zeros((n_nhoods, params.adata.shape[0]), dtype=int)
     row_indices = np.repeat(
         np.arange(n_nhoods),
         [0 if x is None else len(x) for x in nhood_info_df["knn_idc"]],
@@ -101,8 +102,22 @@ def _create_sample_and_nhood_based_cell_mask(
         ]
     )
     # now set row,col pairs for each cell-neighborhood pair to 1
-    cell_nhood_mask_full[row_indices, col_indices] = 1
-    # subset to query cells only (i.e. exclude reference cells):
+    cell_nhood_mask_cell_in_nhood[row_indices, col_indices] = 1
+    # 1b: set cells to 1 if its sample passed filtering in that neighborhood:
+    sample_array = np.array(params.adata.obs[params.sample_key].values, dtype=object)[:, np.newaxis]
+    cell_nhood_mask_sample_passed_filter = np.array(
+        [
+            np.any(sample_array == np.array(sample_list, dtype=object), axis=1)
+            for sample_list in nhood_info_df.samples_q.values
+        ]
+    )
+    # 1b alternative, slower but possibly more robust:
+    # cell_nhood_mask_sample_passed_filter = np.array([
+    #     params.adata.obs[params.sample_key].isin(sample_list).values
+    #     for sample_list in nhood_info_df.samples_q.values])
+    # 1c: combine the two masks:
+    cell_nhood_mask_full = cell_nhood_mask_cell_in_nhood * cell_nhood_mask_sample_passed_filter
+    # 1d: subset to query cells only (i.e. exclude reference cells):
     cell_nhood_mask = cell_nhood_mask_full[:, params.adata.obs[params.ref_q_key] == params.q_cat]
     # 2. CREATE SAMPLE-BASED MASK
     # now calculate sample mask, specifying for each query cell from which sample it came
@@ -128,7 +143,7 @@ def _get_per_cell_filtering_info(
     cell_nhood_mask: np.ndarray,
     nhood_info_df: pd.DataFrame,
 ) -> np.ndarray:
-    """Extract filtering info for each cell based on its neighborhoods."""
+    """Extract filtering info for each cell based on its neighborhood(s)."""
     cell_filtering_info = np.full_like(
         mapqc_scores, fill_value=np.nan
     )  # note that np.nan will be converted to string automatically below
@@ -139,7 +154,7 @@ def _get_per_cell_filtering_info(
     # filtering info. Otherwise, fill in None
     per_cell_per_nhood_filter = pd.DataFrame(
         np.where(cell_nhood_mask, nhood_info_df.filter_info.values[:, np.newaxis], None)
-    )  # work with dataframe here becaues numpy operations along axis create weird string artifacts
+    )  # work with dataframe here because numpy operations along axis create weird string artifacts
     # Collect the most prevalent filtering outcome for each cell:
     per_cell_filter_most_prevalent = per_cell_per_nhood_filter.mode().iloc[
         0

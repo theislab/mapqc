@@ -60,6 +60,7 @@ def get_normalized_dists_to_ref(
         # note that we expect some empty slices here: not all
         # reference samples are present in each neighborhood.
         warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+        warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN slice encountered")
         r_dists_to_ref_raw = np.nanmean(pw_dists_r_to_r_valid, axis=0)
     # Now identify outlier reference samples:
     outlier_mask = _identify_outliers(r_dists_to_ref_raw)
@@ -88,6 +89,7 @@ def get_normalized_dists_to_ref(
     # which we define as a sample's mean distance to
     # all (other) reference samples, per neighborhood
     with warnings.catch_warnings():
+        # filter out warnings caused by empty slices, we expect these
         warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
         # calculate for all samples:
         sample_dists_to_ref = np.nanmean(pw_dists_valid_outlier_rows_removed, axis=0)
@@ -98,10 +100,13 @@ def get_normalized_dists_to_ref(
     # these are based on the reference samples only.
     r_sample_dists_to_ref_outliers_removed = sample_dists_to_ref_outliers_removed[:n_ref_samples, :]
     with warnings.catch_warnings():
+        # filter out warnings caused by empty slices, we expect these
         warnings.filterwarnings("ignore", category=RuntimeWarning, message="Mean of empty slice")
+        warnings.filterwarnings("ignore", category=RuntimeWarning, message="All-NaN slice encountered")
+        warnings.filterwarnings("ignore", category=RuntimeWarning, message="Degrees of freedom <= 0 for slice")
         baseline_mean_dist_to_ref = np.nanmean(r_sample_dists_to_ref_outliers_removed, axis=0)
-    # subtract 1 from degrees of freedom as we're looking at sample and not population standard deviation
-    baseline_stdev_dist_to_ref = np.nanstd(r_sample_dists_to_ref_outliers_removed, axis=0, ddof=1)
+        # subtract 1 from degrees of freedom as we're looking at sample and not population standard deviation
+        baseline_stdev_dist_to_ref = np.nanstd(r_sample_dists_to_ref_outliers_removed, axis=0, ddof=1)
     # Now, normalize the sample distances based on the baseline
     # mean and standard deviation. Note that we include the outliers
     # here, we only wanted to exclude them for mean/stdev calculation.
