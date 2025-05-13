@@ -10,8 +10,32 @@ A metric for the evaluation of single-cell query-to-reference mappings
 
 ## Getting started
 
-Please refer to the [documentation][],
-in particular, the [API documentation][].
+Please refer to the [documentation][], in particular, the [API documentation][]. A few notes on how and when to use MapQC.
+
+### What are the data requirements to use mapQC?
+
+1. **Reference**: MapQC is meant to evaluate the mapping of a given dataset to an existing, large-scale reference. It assumes the reference more or less covers the diversity of the control population (e.g. diversity among healthy individuals for the case of human data, or of unperturbed organoids generated with a wide array of protocols for an organoid dataset). Therefore, a mapping of a single dataset to another single dataset is likely to not fulfill these assumptions, and mapQC is not guaranteed to work well.
+
+2. **Query**: MapQC requires control samples in the query.
+
+3. **Reference Data**: MapQC runs on a scanpy AnnData object, that includes the *control* cells from the reference (i.e. no perturbed or diseased cells!) and *no perturbed/diseased/etc.* cells in the reference. Make sure to exclude these before running mapQC.
+
+4. **Query Data**: For the query, include both control and case/perturbed samples.
+
+5. **Required Metadata**: Several metadata columns need to be present in your adata.obs:
+
+   The following need a value for every cell from both the reference and the query. Column names can be set as wanted:
+   - A "study" key, specifying from which study each cell in the reference and query came. The query is assumed to come from a single study. If the query includes multiple studies, map these separately and run mapQC on each of them separately.
+   - A "sample" key, specifying from which biological sample a given cell came.
+   - A reference versus query key, specifying for each cell whether it is from the reference or the query.
+
+   And optionally:
+   - A grouping of all your cells, e.g. a clustering run on your mapping embedding. If this is provided, mapQC will sample cells proportional to those groups instead of taking randomly sampled cells to choose its neighborhood sample cells. Providing a grouping might help better covering the full embedding space (especially rare cell types) when running mapQC.
+
+   And for the query:
+   - A "condition" key, specifying for the query what condition (case/control etc.)
+
+6. **Embedding Data**: Your adata object needs to include the mapped embedding, including coordinates for both the reference and the query. These can be stored either in adata.X or in adata.obsm.
 
 ## Installation
 
