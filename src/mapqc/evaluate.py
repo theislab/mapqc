@@ -25,15 +25,14 @@ def evaluate(
         Column name in adata.obs that contains the case-control information
     case_cats: list of str
         Unique case categories, i.e. the non-control categories to be evaluated
-        (e.g. disease, perturbation, etc.). These categories should be in
-        adata.obs[case_control_key], as a list (e.g. ["IPF", "COPD"]). Each
+        for the query cells only, as a list (e.g. ["IPF", "COPD"]). Each
         category will be evaluated separately. If only one category exists,
         still provide as a list (e.g. ["IPF"]).
     control_cats: list of str
-        Unique control categories in adata.obs[case_control_key], as a list
-        (e.g. ["Control", "Control_2"]). These will be evaluated as one group.
-        The controls are considered to be the same as the reference used to map
-        against.
+        Unique control categories in adata.obs[case_control_key] for the query
+        cells only, as a list (e.g. ["Control", "Control_2"]). These will be
+        evaluated as one group. The controls are considered to be the same as
+        the reference used to map against.
 
     Returns
     -------
