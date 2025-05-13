@@ -3,13 +3,13 @@ import warnings
 import numpy as np
 import pytest
 
-from mapqc.distances.normalized_distances import (
+from mapqc._distances._normalized_distances import (
     _fill_lower_triangle,
+    _get_normalized_dists_to_ref,
     _identify_outliers,
     _mask_rows_and_columns,
-    get_normalized_dists_to_ref,
 )
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
 @pytest.fixture
@@ -130,9 +130,9 @@ def test_get_normalized_dists_to_ref(pw_dists_triu, pw_dists_valid, r_dists_to_r
     baseline_mean = np.nanmean(r_dists_to_ref_outliers_removed, axis=0)
     baseline_stdev = np.nanstd(r_dists_to_ref_outliers_removed, axis=0, ddof=1)
     # create params object:
-    params = MapQCParams(samples_r=list(range(n_samples_ref)))
+    params = _MapQCParams(samples_r=list(range(n_samples_ref)))
     # get output from normalize_pw_dists:
-    normalized_dists_to_ref = get_normalized_dists_to_ref(params=params, pw_dists_triu=pw_dists_triu)
+    normalized_dists_to_ref = _get_normalized_dists_to_ref(params=params, pw_dists_triu=pw_dists_triu)
     # predict individual values (in case our matrix subtraction/division below is incorrect):
     # note that neighborhood 1 in the row_masked_pw_dists is neighborhood 2 in the original
     # pw_dists tensor, as we removed neighborhood 1 from the original tensor as it had

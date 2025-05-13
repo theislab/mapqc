@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 
-from mapqc.mapqc_scores import (
+from mapqc._mapqc_scores import (
+    _calculate_mapqc_scores,
     _create_sample_and_nhood_based_cell_mask,
     _get_per_cell_filtering_info,
-    calculate_mapqc_scores,
 )
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
 def test_mapqc_scores(adata, intermediate_data_dir):
@@ -18,7 +18,7 @@ def test_mapqc_scores(adata, intermediate_data_dir):
     mapqc_scores_exp = np.load(intermediate_data_dir / "mapqc_scores.npy")
     filtering_info_per_cell_exp = np.load(intermediate_data_dir / "filtering_info_per_cell.npy", allow_pickle=True)
     # calculate mapqc_socres
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=adata,
         ref_q_key="r_or_q",
         r_cat="r",
@@ -41,7 +41,7 @@ def test_mapqc_scores(adata, intermediate_data_dir):
         samples_q=sorted(adata.obs.loc[adata.obs.r_or_q == "q", "sample"].unique().tolist()),
     )
     # samples_q = sorted(adata.obs.loc[adata.obs[ref_q_key] == q_cat, sample_key].unique().tolist())
-    mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
+    mapqc_scores, filtering_info_per_cell = _calculate_mapqc_scores(
         params=params,
         sample_dist_to_ref_per_nhood=dists_to_ref,
         nhood_info_df=nhood_info,
@@ -84,7 +84,7 @@ def test_create_sample_and_nhood_based_cell_mask():
     # To prevent scanpy warning, we convert our float indices to strings:
     obs.index = obs.index.astype(str)
     # now calculate true output using function:
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=sc.AnnData(obs=obs),
         ref_q_key="ref_or_que",
         q_cat="que",

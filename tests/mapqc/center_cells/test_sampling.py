@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import scanpy as sc
 
-from mapqc.center_cells.sampling import sample_center_cells_by_group
+from mapqc._center_cells._sampling import _sample_center_cells_by_group
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def mock_adata():
 
 # create simplified version of parameter class, that requires fewer arguments:
 @dataclass
-class MapQCParams:
+class _MapQCParams:
     adata: sc.AnnData
     ref_q_key: str
     q_cat: str
@@ -43,8 +43,8 @@ class MapQCParams:
 
 
 def test_sample_center_cells_by_group(mock_adata):
-    params = MapQCParams(adata=mock_adata, ref_q_key="ref_or_qu", q_cat="q", grouping_key="cl", n_nhoods=30, seed=42)
-    sampled_cells = sample_center_cells_by_group(
+    params = _MapQCParams(adata=mock_adata, ref_q_key="ref_or_qu", q_cat="q", grouping_key="cl", n_nhoods=30, seed=42)
+    sampled_cells = _sample_center_cells_by_group(
         params=params,
     )
     n_cells_per_group = mock_adata.obs.loc[sampled_cells, params.grouping_key].value_counts()
@@ -64,7 +64,7 @@ def test_sample_center_cells_by_group(mock_adata):
     # finally, check that outcome is as expected, take a low number
     # of sampled cells here, just to check that outcome does not
     # change with code updates etc.
-    # sampled_cells_small = sample_center_cells_by_group(
+    # sampled_cells_small = _sample_center_cells_by_group(
     #     adata_obs=adata_obs, ref_q_key="ref_or_qu", q_cat="q", grouping_cat="cl", n_cells=5, seed=42
     # )
     # assert sampled_cells_small == ["c210", "c260", "c299", "c339", "c336"]

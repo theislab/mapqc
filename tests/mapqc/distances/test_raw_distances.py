@@ -3,11 +3,11 @@ import pandas as pd
 import pytest
 import scanpy as sc
 
-from mapqc.distances.raw_distances import (
+from mapqc._distances._raw_distances import (
     _distance_between_cell_sets,
-    pairwise_sample_distances,
+    _pairwise_sample_distances,
 )
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
 @pytest.fixture
@@ -167,7 +167,7 @@ def test_pairwise_sample_distances_simple(cell_info):
     ]
     samples_q_set = sorted(set(samples_q))
     # create params:
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info),
         adata_emb_loc="X",
         samples_r=samples_r_all,
@@ -179,7 +179,7 @@ def test_pairwise_sample_distances_simple(cell_info):
     )
     # calculate simplest pairwise distances (i.e. also keep
     # pairs from same study)
-    test_samples_q, test_out = pairwise_sample_distances(
+    test_samples_q, test_out = _pairwise_sample_distances(
         params=params,
         emb=cell_info.loc[:, ["emb0", "emb1"]].values,
         obs=cell_info,
@@ -239,7 +239,7 @@ def test_pairwise_sample_distances_simple(cell_info):
     sample_info = cell_info.groupby("s").agg({"paper": "first"})
     params.exclude_same_study = True
     params.study_key = "paper"
-    test_samples_q_2, test_out_2 = pairwise_sample_distances(
+    test_samples_q_2, test_out_2 = _pairwise_sample_distances(
         params=params,
         sample_df=sample_info,
         emb=cell_info.loc[:, ["emb0", "emb1"]].values,

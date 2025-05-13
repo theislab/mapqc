@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from mapqc.neighbors.adaptive_k import filter_and_get_adaptive_k
-from mapqc.params import MapQCParams
+from mapqc._neighbors._adaptive_k import _filter_and_get_adaptive_k
+from mapqc._params import _MapQCParams
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def cell_df_small():
 def test_filter_and_get_adaptive_k(cell_df_small):
     sample_df = cell_df_small.groupby("s").agg({"re_qu": "first", "paper": "first"})
     # first try out failing query
-    params = MapQCParams(
+    params = _MapQCParams(
         ref_q_key="re_qu",
         sample_key="s",
         q_cat="qu",
@@ -31,7 +31,7 @@ def test_filter_and_get_adaptive_k(cell_df_small):
         exclude_same_study=False,
         adapt_k=False,
     )
-    assert filter_and_get_adaptive_k(
+    assert _filter_and_get_adaptive_k(
         params=params,
         cell_df=cell_df_small,
         sample_df=sample_df,
@@ -41,7 +41,7 @@ def test_filter_and_get_adaptive_k(cell_df_small):
     params.min_n_cells = 2
     params.exclude_same_study = True
     params.study_key = "paper"
-    assert filter_and_get_adaptive_k(
+    assert _filter_and_get_adaptive_k(
         params=params,
         cell_df=cell_df_small,
         sample_df=sample_df,
@@ -57,7 +57,7 @@ def test_filter_and_get_adaptive_k(cell_df_small):
     params.study_key = None
     params.adapt_k = True
     params.adaptive_k_margin = 0.1
-    assert filter_and_get_adaptive_k(
+    assert _filter_and_get_adaptive_k(
         params=params,
         cell_df=cell_df_small,
         sample_df=sample_df,

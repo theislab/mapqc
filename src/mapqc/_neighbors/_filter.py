@@ -1,18 +1,18 @@
 import numpy as np
 import pandas as pd
 
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
-def filter_and_get_min_k_query(
-    params: MapQCParams,
+def _filter_and_get_min_k_query(
+    params: _MapQCParams,
     cell_df: pd.DataFrame,
 ) -> tuple[bool, int | None, str]:
     """Checks if neighborhood has enough query cells for any query sample.
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object.
     cell_df : pd.DataFrame
         Dataframe with cells ordered by distance to the center cell, as well as information
@@ -54,8 +54,8 @@ def filter_and_get_min_k_query(
         )  # round up and make into integer
 
 
-def filter_and_get_min_k_ref(
-    params: MapQCParams,
+def _filter_and_get_min_k_ref(
+    params: _MapQCParams,
     cell_df: pd.DataFrame,
     k_min_query: int,
     sample_df: pd.DataFrame = None,
@@ -64,7 +64,7 @@ def filter_and_get_min_k_ref(
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object.
     cell_df : pd.DataFrame
         Dataframe with cells ordered by distance to the center cell, as well as information

@@ -7,4 +7,4 @@ from .evaluate import evaluate
 from .run import run_mapqc
 
 __version__ = version("mapqc")
-__all__ = ["run_mapqc"]
+__all__ = ["run_mapqc", "evaluate", "pl"]

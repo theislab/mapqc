@@ -2,18 +2,18 @@ import warnings
 
 import numpy as np
 
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
-def get_normalized_dists_to_ref(
-    params: MapQCParams,
+def _get_normalized_dists_to_ref(
+    params: _MapQCParams,
     pw_dists_triu: np.ndarray,
 ) -> np.ndarray:
     """Calculate normalized distance to the reference for each sample in each nhood.
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object
     pw_dists_triu: np.ndarray
         Tensor of shape (n_ref_samples, n_ref_samples + n_query_samples, n_neighborhoods)

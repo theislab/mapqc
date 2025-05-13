@@ -1,11 +1,11 @@
 import pandas as pd
 
-from mapqc.neighbors.filter import filter_and_get_min_k_query, filter_and_get_min_k_ref
-from mapqc.params import MapQCParams
+from mapqc._neighbors._filter import _filter_and_get_min_k_query, _filter_and_get_min_k_ref
+from mapqc._params import _MapQCParams
 
 
-def filter_and_get_adaptive_k(
-    params: MapQCParams,
+def _filter_and_get_adaptive_k(
+    params: _MapQCParams,
     cell_df: pd.DataFrame,
     sample_df: pd.DataFrame,
 ) -> tuple[bool, int | None, str]:
@@ -13,7 +13,7 @@ def filter_and_get_adaptive_k(
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object.
     cell_df : pd.DataFrame
         Dataframe with cells ordered by distance to the center cell, as well as information
@@ -30,7 +30,7 @@ def filter_and_get_adaptive_k(
         if filter was passed, otherwise None; 3) a string with the reason for the filter
         pass/fail.
     """
-    filter_pass_query, min_k_out_query, filter_info_query = filter_and_get_min_k_query(
+    filter_pass_query, min_k_out_query, filter_info_query = _filter_and_get_min_k_query(
         params=params,
         cell_df=cell_df,
     )
@@ -38,7 +38,7 @@ def filter_and_get_adaptive_k(
     if not filter_pass_query:
         return (filter_pass_query, min_k_out_query, filter_info_query)
 
-    filter_pass_ref, min_k_out_ref, filter_info_ref = filter_and_get_min_k_ref(
+    filter_pass_ref, min_k_out_ref, filter_info_ref = _filter_and_get_min_k_ref(
         params=params,
         cell_df=cell_df,
         k_min_query=min_k_out_query,

@@ -3,14 +3,14 @@ code used to generate intermediate files dists_to_ref.npy and nhood_info.pkl:
 import numpy as np
 import pandas as pd
 import scanpy as sc
-from mapqc.process_nhood import process_neighborhood
-from mapqc.center_cells.sampling import sample_center_cells_by_group
-from mapqc.distances.normalized_distances import get_normalized_dists_to_ref
-from mapqc.params import MapQCParams
+from mapqc._process_nhood import _process_neighborhood
+from mapqc._center_cells._sampling import _sample_center_cells_by_group
+from mapqc._distances._normalized_distances import _get_normalized_dists_to_ref
+from mapqc._params import _MapQCParams
 
 adata = sc.read_h5ad("./tests/data/input/mapped_q_and_r.h5ad")
 n_nhoods = 30
-params = MapQCParams(
+params = _MapQCParams(
     adata=adata,
     ref_q_key="r_or_q",
     r_cat="r",
@@ -30,7 +30,7 @@ params = MapQCParams(
     adapt_k=True,
     distance_metric="energy_distance",
 )
-center_cells = sample_center_cells_by_group(
+center_cells = _sample_center_cells_by_group(
     params
 )  # adata_obs=adata.obs,ref_q_key='r_or_q',q_cat='q',grouping_cat='leiden',n_cells=n_nhoods,seed=42)
 params.samples_r = sorted(
@@ -51,10 +51,10 @@ dists = np.full(
     fill_value=np.nan,
 )
 for i, cell in enumerate(center_cells):
-    nhood_dict, dists[:, :, i] = process_neighborhood(params, cell)
+    nhood_dict, dists[:, :, i] = _process_neighborhood(params, cell)
     nhood_info.loc[cell] = nhood_dict
     nhood_info.loc[cell, "nhood_number"] = i
-dists_to_ref = get_normalized_dists_to_ref(params, dists)
+dists_to_ref = _get_normalized_dists_to_ref(params, dists)
 np.save("./tests/data/intermediate/dists_to_ref.npy", dists_to_ref)
 nhood_info.to_pickle("./tests/data/intermediate/nhood_info.pkl")
 ```
@@ -63,13 +63,13 @@ Code used to generate mapqc_scores.npy and filtering_info_per_cell.npy:
 ```py
 import numpy as np
 import pandas as pd
-from mapqc.mapqc_scores import calculate_mapqc_scores
-from mapqc.params import MapQCParams
+from mapqc._mapqc_scores import _calculate_mapqc_scores
+from mapqc._params import _MapQCParams
 import scanpy as sc
 
 adata = sc.read_h5ad("./tests/data/input/mapped_q_and_r.h5ad")
 n_nhoods = 30
-params = MapQCParams(
+params = _MapQCParams(
     adata=adata,
     ref_q_key="r_or_q",
     r_cat="r",
@@ -97,7 +97,7 @@ params = MapQCParams(
 )
 dists_to_ref = np.load("./tests/data/intermediate/dists_to_ref.npy")
 nhood_info = pd.read_pickle("./tests/data/intermediate/nhood_info.pkl")
-mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
+mapqc_scores, filtering_info_per_cell = _calculate_mapqc_scores(
     params=params, sample_dist_to_ref_per_nhood=dists_to_ref, nhood_info_df=nhood_info
 )
 np.save("./tests/data/intermediate/mapqc_scores.npy", mapqc_scores)

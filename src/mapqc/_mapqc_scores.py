@@ -3,11 +3,11 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
-def calculate_mapqc_scores(
-    params: MapQCParams,
+def _calculate_mapqc_scores(
+    params: _MapQCParams,
     sample_dist_to_ref_per_nhood: np.ndarray,
     nhood_info_df: pd.DataFrame,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -16,7 +16,7 @@ def calculate_mapqc_scores(
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object.
     sample_dist_to_ref_per_nhood: np.ndarray
         Array of shape (n_samples_r + n_samples_q, n_nhoods, n_cells_q) containing
@@ -61,7 +61,7 @@ def calculate_mapqc_scores(
 
 
 def _create_sample_and_nhood_based_cell_mask(
-    params: MapQCParams,
+    params: _MapQCParams,
     nhood_info_df: pd.DataFrame,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create mask set to 1 for each cell at the sample and neighborhood(s) it was part of.

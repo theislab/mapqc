@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def translate_values_to_colors_rgba(
+def _translate_values_to_colors_rgba(
     point_color_values,
     point_ref_q_values,
     point_filtering_values,

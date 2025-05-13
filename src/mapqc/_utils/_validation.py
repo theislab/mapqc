@@ -7,10 +7,10 @@ import pandas as pd
 import scanpy as sc
 from scipy import sparse
 
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
-def validate_input_params(params: MapQCParams):
+def _validate_input_params(params: _MapQCParams):
     """Validate input parameters"""
     _check_adata(params.adata, params.adata_emb_loc)
     _check_ref_q_arguments(params.adata, params.ref_q_key, params.q_cat, params.r_cat)

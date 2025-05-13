@@ -1,3 +1,9 @@
+"""
+Evaluation module for mapqc package.
+
+This module provides functions for evaluating the performance of mapqc.
+"""
+
 import pandas as pd
 import scanpy as sc
 

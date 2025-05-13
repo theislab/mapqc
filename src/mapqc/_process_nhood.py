@@ -1,20 +1,20 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from mapqc.distances.raw_distances import pairwise_sample_distances
-from mapqc.neighbors.adaptive_k import filter_and_get_adaptive_k
-from mapqc.params import MapQCParams
+from mapqc._distances._raw_distances import _pairwise_sample_distances
+from mapqc._neighbors._adaptive_k import _filter_and_get_adaptive_k
+from mapqc._params import _MapQCParams
 
 
-def process_neighborhood(
-    params: MapQCParams,
+def _process_neighborhood(
+    params: _MapQCParams,
     center_cell: str,
 ):
     """Check if nhood passes filtering and calculate pairwise distances.
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object.
     center_cell: str
         Center cell of the neighborhood (cell's row name in adata.obs).
@@ -68,7 +68,7 @@ def process_neighborhood(
     ]  # we add 1 to include the center cell
     sample_df = cell_df.groupby(params.sample_key, observed=False).agg({cat: "first" for cat in metadata_to_keep})
     # filter and adapt k if wanted and needed (note that k will automatically not be adapted if cell_df has n_rows=min_k)
-    filter_pass, adapted_k, filter_info = filter_and_get_adaptive_k(
+    filter_pass, adapted_k, filter_info = _filter_and_get_adaptive_k(
         params=params,
         cell_df=cell_df,
         sample_df=sample_df,
@@ -107,7 +107,7 @@ def process_neighborhood(
             sample_df = None
             # study_key = None
         # calculate pairwise distances between all samples in the neighborhood
-        samples_q, nhood_sample_pw_dists = pairwise_sample_distances(
+        samples_q, nhood_sample_pw_dists = _pairwise_sample_distances(
             params=params,
             emb=nhood_emb,
             obs=nhood_obs,

@@ -7,7 +7,7 @@ import scanpy as sc
 
 
 @dataclass
-class MapQCParams:
+class _MapQCParams:
     """
     Parameters for running MAPQC analysis.
 

@@ -1,17 +1,17 @@
 import numpy as np
 import pandas as pd
 
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
-def sample_center_cells_by_group(
-    params: MapQCParams,
-) -> list:
+def _sample_center_cells_by_group(
+    params: _MapQCParams,
+) -> list[str]:
     """Sample n query cells, based on cell proportions per group for both reference and query.
 
     Parameters
     ----------
-    params: MapQCParams parameters object.
+    params: _MapQCParams parameters object.
 
     Returns
     -------

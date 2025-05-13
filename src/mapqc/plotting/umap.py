@@ -7,7 +7,7 @@ import pandas as pd
 import scanpy as sc
 from matplotlib.gridspec import GridSpec
 
-from ._plotting_utils import translate_values_to_colors_rgba
+from ._plotting_utils import _translate_values_to_colors_rgba
 
 
 def mapqc_scores(
@@ -41,7 +41,7 @@ def mapqc_scores(
     if umap_kwargs is None:
         umap_kwargs = {}
     cmap_name = "coolwarm"
-    colors = translate_values_to_colors_rgba(
+    colors = _translate_values_to_colors_rgba(
         point_color_values=adata.obs.mapqc_score,
         point_ref_q_values=adata.obs[adata.uns["mapqc_params"]["ref_q_key"]],
         point_filtering_values=adata.obs.mapqc_filtering,

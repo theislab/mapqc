@@ -5,11 +5,11 @@ import pandas as pd
 from numpy.typing import NDArray
 from sklearn.metrics import pairwise_distances
 
-from mapqc.params import MapQCParams
+from mapqc._params import _MapQCParams
 
 
-def pairwise_sample_distances(
-    params: MapQCParams,
+def _pairwise_sample_distances(
+    params: _MapQCParams,
     emb: np.ndarray,
     obs: pd.DataFrame,
     sample_df: pd.DataFrame = None,
@@ -18,7 +18,7 @@ def pairwise_sample_distances(
 
     Parameters
     ----------
-    params: MapQCParams
+    params: _MapQCParams
         MapQC parameters object.
     emb: np.ndarray
         Array of shape (n_cells, n_features) for all and only the cells in the

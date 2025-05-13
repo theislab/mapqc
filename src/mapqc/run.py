@@ -10,12 +10,12 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 
-from mapqc.center_cells.sampling import sample_center_cells_by_group
-from mapqc.distances.normalized_distances import get_normalized_dists_to_ref
-from mapqc.mapqc_scores import calculate_mapqc_scores
-from mapqc.params import MapQCParams
-from mapqc.process_nhood import process_neighborhood
-from mapqc.utils.validation import validate_input_params
+from mapqc._center_cells._sampling import _sample_center_cells_by_group
+from mapqc._distances._normalized_distances import _get_normalized_dists_to_ref
+from mapqc._mapqc_scores import _calculate_mapqc_scores
+from mapqc._params import _MapQCParams
+from mapqc._process_nhood import _process_neighborhood
+from mapqc._utils._validation import _validate_input_params
 
 
 def run_mapqc(
@@ -123,7 +123,7 @@ def run_mapqc(
         Only returned if return_sample_dists_to_ref_df is True.
     """
     # Create parameter object for internal use
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=adata,
         adata_emb_loc=adata_emb_loc,
         ref_q_key=ref_q_key,
@@ -146,9 +146,9 @@ def run_mapqc(
     )
 
     # validate input
-    validate_input_params(params)
+    _validate_input_params(params)
     # now prepare run
-    center_cells = sample_center_cells_by_group(
+    center_cells = _sample_center_cells_by_group(
         params=params,
     )
 
@@ -168,11 +168,11 @@ def run_mapqc(
     )
 
     for i, cell in enumerate(center_cells):
-        nhood_info.loc[cell], dists[:, :, i] = process_neighborhood(params=params, center_cell=cell)
+        nhood_info.loc[cell], dists[:, :, i] = _process_neighborhood(params=params, center_cell=cell)
         nhood_info.loc[cell, "nhood_number"] = i
 
-    dists_to_ref = get_normalized_dists_to_ref(params, dists)
-    mapqc_scores, filtering_info_per_cell = calculate_mapqc_scores(
+    dists_to_ref = _get_normalized_dists_to_ref(params, dists)
+    mapqc_scores, filtering_info_per_cell = _calculate_mapqc_scores(
         params=params,
         sample_dist_to_ref_per_nhood=dists_to_ref,
         nhood_info_df=nhood_info,

@@ -4,9 +4,9 @@ import pytest
 import scanpy as sc
 from scipy.spatial.distance import cdist
 
-from mapqc.distances.raw_distances import pairwise_sample_distances
-from mapqc.params import MapQCParams
-from mapqc.process_nhood import process_neighborhood
+from mapqc._distances._raw_distances import _pairwise_sample_distances
+from mapqc._params import _MapQCParams
+from mapqc._process_nhood import _process_neighborhood
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_nhood_passing_filter(cell_info):
     # cell_info.sort_values(by='dist_to_cc') # print/show sorted
     # samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     # samples_q_all = ["s3", "s2"]
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info.loc[:, ["s", "re_qu"]]),
         adata_emb_loc="X",
         ref_q_key="re_qu",
@@ -80,7 +80,7 @@ def test_nhood_passing_filter(cell_info):
         adapt_k=True,
         distance_metric="energy_distance",
     )
-    nhood_info_dict, pw_dists = process_neighborhood(
+    nhood_info_dict, pw_dists = _process_neighborhood(
         params=params,
         center_cell=center_cell,
     )
@@ -107,7 +107,7 @@ def test_nhood_passing_filter(cell_info):
     # pass that through the pw distance function and check that the
     # output is the same as the output we get here
     expected_pw_dist_input = cell_info.iloc[knn_idc, :]
-    expected_samples_q, expected_pw_dists = pairwise_sample_distances(
+    expected_samples_q, expected_pw_dists = _pairwise_sample_distances(
         params=params,
         emb=expected_pw_dist_input.loc[:, ["emb0", "emb1"]].values,
         obs=expected_pw_dist_input.loc[:, ["s", "re_qu"]],
@@ -127,7 +127,7 @@ def test_nhood_failing_query_filter(cell_info):
     center_cell = "c6"
     samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     samples_q_all = ["s3", "s2"]
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info.loc[:, ["s", "re_qu"]]),
         adata_emb_loc="X",
         ref_q_key="re_qu",
@@ -144,7 +144,7 @@ def test_nhood_failing_query_filter(cell_info):
         samples_q=samples_q_all,
         distance_metric="energy_distance",
     )
-    nhood_info_dict, pw_dists = process_neighborhood(
+    nhood_info_dict, pw_dists = _process_neighborhood(
         params=params,
         center_cell=center_cell,
     )
@@ -175,7 +175,7 @@ def test_nhood_failing_reference_filter(cell_info):
     samples_r_all = ["s1", "s5", "s4"]  # order differently than adata_obs etc.
     samples_q_all = ["s3", "s2"]
     kmin = 5
-    params = MapQCParams(
+    params = _MapQCParams(
         adata=sc.AnnData(cell_info.loc[:, ["emb0", "emb1"]].values, obs=cell_info.loc[:, ["s", "re_qu", "paper"]]),
         adata_emb_loc="X",
         ref_q_key="re_qu",
@@ -193,7 +193,7 @@ def test_nhood_failing_reference_filter(cell_info):
         min_n_cells=2,
         distance_metric="energy_distance",
     )
-    nhood_info_dict, pw_dists = process_neighborhood(
+    nhood_info_dict, pw_dists = _process_neighborhood(
         params=params,
         center_cell=center_cell,
     )
