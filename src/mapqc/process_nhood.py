@@ -89,7 +89,7 @@ def process_neighborhood(
         )
         nhood_info_dict = {
             "center_cell": center_cell,
-            "k": None,
+            "k": np.nan,
             "knn_idc": knn_idc,
             "filter_info": filter_info,
             "samples_q": samples_q_sufficient_cells,

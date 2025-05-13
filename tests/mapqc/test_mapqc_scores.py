@@ -10,15 +10,13 @@ from mapqc.mapqc_scores import (
 from mapqc.params import MapQCParams
 
 
-def test_mapqc_scores(input_data_dir, intermediate_data_dir, expected_data_dir):
-    # load input adata:
-    adata = sc.read(input_data_dir / "mapped_q_and_r.h5ad")
+def test_mapqc_scores(adata, intermediate_data_dir):
     # load intermediate output:
     dists_to_ref = np.load(intermediate_data_dir / "dists_to_ref.npy")
     nhood_info = pd.read_pickle(intermediate_data_dir / "nhood_info.pkl")
     # load expected final output:
-    mapqc_scores_exp = np.load(expected_data_dir / "mapqc_scores.npy")
-    filtering_info_per_cell_exp = np.load(expected_data_dir / "filtering_info_per_cell.npy", allow_pickle=True)
+    mapqc_scores_exp = np.load(intermediate_data_dir / "mapqc_scores.npy")
+    filtering_info_per_cell_exp = np.load(intermediate_data_dir / "filtering_info_per_cell.npy", allow_pickle=True)
     # calculate mapqc_socres
     params = MapQCParams(
         adata=adata,
@@ -144,7 +142,7 @@ def test_get_per_cell_filtering_info():
                 "not enough reference samples",
                 "not enough reference samples from different studies",
             ],
-            "k": [41, 40, 40, None, None],
+            "k": [41, 40, 40, np.nan, np.nan],
             "knn_idc": [[11], [], [29, 37, 52], [6, 39], [11, 37, 52]],
         }
     )

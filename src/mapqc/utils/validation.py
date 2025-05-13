@@ -30,6 +30,7 @@ def validate_input_params(params: MapQCParams):
     _check_distance_metric(params.distance_metric)
     _check_seed(params.seed)
     _check_overwrite(params.overwrite, params.adata)
+    _check_return_nhood_info_df(params.return_nhood_info_df)
 
 
 def _check_adata(adata, adata_emb_loc):
@@ -209,3 +210,9 @@ def _check_overwrite(overwrite, adata):
             raise ValueError(
                 "mapqc_filtering column already exists in adata.obs. Set overwrite to True to overwrite it."
             )
+
+
+def _check_return_nhood_info_df(return_nhood_info_df):
+    """Check if return_nhood_info_df is valid"""
+    if not isinstance(return_nhood_info_df, bool):
+        raise ValueError("return_nhood_info_df must be a boolean.")

@@ -36,20 +36,29 @@ def run_mapqc(
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
     seed: int = None,
     overwrite: bool = False,
+    return_nhood_info_df: bool = False,
+    return_sample_dists_to_ref_df: bool = False,
 ):
     """
     Run mapqc on an AnnData object.
 
-    This function modifies the input AnnData object in-place by adding two new columns to adata.obs:
+    This function modifies the input AnnData object in-place by adding several new columns to adata.obs:
     - 'mapqc_score': Contains the mapqc scores for query cells (NaN for reference cells)
     - 'mapqc_filtering': Contains filtering information for query cells (None for reference cells)
+    - 'mapqc_nhood_filtering': Contains filtering information for each neighborhood
+    - 'mapqc_nhood_number': Contains the number of the neighborhood
+    - 'mapqc_k': Contains the size of the neighborhood
     It also adds a dictionary including the input parameter values to adata.uns['mapqc_params']
+    Finally, if return_nhood_info_df is True, the function will return a pandas DataFrame containing
+    the neighborhood information, and if return_sample_dists_to_ref_df is True, the function will return
+    a pandas DataFrame containing the sample distances to reference for each neighborhood.
 
     Parameters
     ----------
     adata : sc.AnnData
         The AnnData object including both the reference and the query cells.
-        This object will be modified in-place.
+        This object will be modified in-place. Important! The AnnData object should include
+        *only* controls for the reference, and should include some controls for the query.
     adata_emb_loc : str
         The location of the embeddings in adata.obsm or "X" if the embedding is in adata.X
     ref_q_key : str
@@ -92,13 +101,26 @@ def run_mapqc(
         Seed for random number generator. Set the seed to ensure reproducibility of results.
     overwrite: bool = False
         Whether to overwrite existing mapqc_score and mapqc_filtering columns in adata.obs.
+    return_nhood_info_df: bool = False
+        Whether to return a pandas DataFrame containing detailed neighborhood information.
+        This can be useful for debugging, or for getting a detailed understanding of your
+        neighborhoods and the mapqc output.
 
     Returns
     -------
     None
-        This function modifies the input AnnData object in-place by adding 'mapqc_score' and
-        'mapqc_filtering' columns to adata.obs. It furthermore adds a dictionary including the
-        input parameter values to adata.uns['mapqc_params']. No values are returned.
+        This function modifies the input AnnData object in-place by adding 'mapqc_score',
+        'mapqc_filtering', 'mapqc_nhood_filtering', 'mapqc_nhood_number', and 'mapqc_k'
+        columns to adata.obs. It furthermore adds a dictionary including the input parameter
+        values to adata.uns['mapqc_params'].
+        No values are returned, unless return_nhood_info_df is True.
+    nhood_info_df: pd.DataFrame
+        A pandas DataFrame containing detailed neighborhood information. This can be useful for
+        debugging, or for getting a detailed understanding of your neighborhoods and the mapqc
+        output. Only returned if return_nhood_info_df is True.
+    sample_dists_to_ref_df: pd.DataFrame
+        A pandas DataFrame containing the sample distances to reference for each neighborhood.
+        Only returned if return_sample_dists_to_ref_df is True.
     """
     # Create parameter object for internal use
     params = MapQCParams(
@@ -120,6 +142,7 @@ def run_mapqc(
         distance_metric=distance_metric,
         seed=seed,
         overwrite=overwrite,
+        return_nhood_info_df=return_nhood_info_df,
     )
 
     # validate input
@@ -154,14 +177,48 @@ def run_mapqc(
         sample_dist_to_ref_per_nhood=dists_to_ref,
         nhood_info_df=nhood_info,
     )
-    # modify input adata object, adding mapqc scores and filtering info to adata.obs,
-    # and adding parameters to adata.uns
+    # modify input adata object:
+    # 1. add mapqc scores and filtering info to adata.obs:
     params.adata.obs["mapqc_score"] = np.nan
     params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, "mapqc_score"] = mapqc_scores
     params.adata.obs["mapqc_filtering"] = None
     params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.q_cat, "mapqc_filtering"] = (
         filtering_info_per_cell
     )
-    params_to_leave_out = ["adata", "overwrite", "samples_r", "samples_q"]
+    # 2. add neighborhood info to adata.obs:
+    nhood_info_cols_to_copy = ["nhood_number", "filter_info", "k"]
+    for col in nhood_info_cols_to_copy:
+        if col == "filter_info":
+            col_name = "mapqc_nhood_filtering"
+            params.adata.obs[col_name] = None
+            params.adata.obs.loc[nhood_info.index, col_name] = nhood_info[col]
+        else:
+            col_name = f"mapqc_{col}"
+            params.adata.obs[col_name] = pd.Series(np.nan, index=params.adata.obs.index, dtype="Int64")
+            params.adata.obs.loc[nhood_info.index, col_name] = nhood_info[col]
+    # 3. add parameters to adata.uns:
+    params_to_leave_out = [
+        "adata",
+        "overwrite",
+        "samples_r",
+        "samples_q",
+        "return_nhood_info_df",
+    ]
     params.adata.uns["mapqc_params"] = {k: v for k, v in params.__dict__.items() if k not in params_to_leave_out}
-    return nhood_info
+
+    if return_nhood_info_df:
+        # change knn_idc to knn_barcodes, that way we can still use the df even when adata order has changed or adata has been subsetted
+        nhood_info["knn_barcodes"] = nhood_info["knn_idc"].apply(lambda x: params.adata.obs.index[x].tolist())
+        del nhood_info["knn_idc"]
+    if return_sample_dists_to_ref_df:
+        sample_dists_to_ref_df = pd.DataFrame(
+            dists_to_ref,
+            index=params.samples_r + params.samples_q,
+            columns=nhood_info.index,
+        )
+        if return_nhood_info_df:
+            return nhood_info, sample_dists_to_ref_df
+        else:
+            return sample_dists_to_ref_df
+    elif return_nhood_info_df:
+        return nhood_info

@@ -1,0 +1,415 @@
+from ast import literal_eval
+
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scanpy as sc
+from matplotlib.gridspec import GridSpec
+
+from ._plotting_utils import translate_values_to_colors_rgba
+
+
+def mapqc_scores(
+    adata: sc.AnnData,
+    vmin: float = -4,
+    vmax: float = 4,
+    figsize: tuple[float, float] = (6, 5),
+    return_fig: bool = False,
+    umap_kwargs: dict = None,
+):
+    """
+    Plot UMAP of MapQC scores, split by case/control status.
+
+    Parameters
+    ----------
+    adata : sc.AnnData
+        Anndata object with MapQC scores in adata.obs.mapqc_score. Both
+        mapqc.run_mapqc() and mapqc.evaluate() should have been run on
+        the adata object, as well as sc.tl.umap().
+    vmin : float, optional
+        Minimum value for the colorbar. Default is -4.
+    vmax : float, optional
+        Maximum value for the colorbar. Default is 4.
+    figsize : tuple[float, float], optional
+        Figure size per panel. Default is (6, 5).
+    return_fig : bool, optional
+        Return the figure object. Default is False.
+    umap_kwargs : dict, optional
+        Keyword arguments for scanpy's UMAP plotting.
+    """
+    if umap_kwargs is None:
+        umap_kwargs = {}
+    cmap_name = "coolwarm"
+    colors = translate_values_to_colors_rgba(
+        point_color_values=adata.obs.mapqc_score,
+        point_ref_q_values=adata.obs[adata.uns["mapqc_params"]["ref_q_key"]],
+        point_filtering_values=adata.obs.mapqc_filtering,
+        vmin=vmin,
+        vmax=vmax,
+        cmap_name=cmap_name,
+    )
+
+    # Create figure with extra space for colorbar and legend
+    fig, gs = _umap_base(adata, colors, figsize, umap_kwargs, extra_width=0.75)
+
+    # Add colorbar
+    if gs is not None:
+        # Create a smaller axis for the colorbar
+        cbar_ax = fig.add_axes([0.92, 0.3, 0.02, 0.4])  # [left, bottom, width, height]
+
+        # Add legend at the top
+        legend_elements = [
+            plt.scatter([], [], c="black", marker="o", label="not sampled"),
+            plt.scatter([], [], c="darkolivegreen", marker="o", label="filtered out"),
+        ]
+        fig.legend(
+            handles=legend_elements,
+            loc="upper center",
+            fontsize=10,
+            frameon=False,
+            bbox_to_anchor=(0.92, 0.95),
+        )  # Position legend above colorbar
+
+        # Add colorbar
+        sm = plt.cm.ScalarMappable(cmap=plt.get_cmap(cmap_name), norm=plt.Normalize(vmin=vmin, vmax=vmax))
+        sm.set_array([])
+        cbar = plt.colorbar(sm, cax=cbar_ax)
+        cbar.set_label("MapQC score", fontsize=10)
+
+    if return_fig:
+        return fig
+    else:
+        plt.show()
+
+
+def mapqc_scores_binary(
+    adata: sc.AnnData,
+    figsize: tuple[float, float] = (6, 5),
+    return_fig: bool = False,
+    umap_kwargs: dict = None,
+):
+    """
+    Plot UMAP of MapQC scores (binary, >2 or <=2), split by case/control status.
+
+    Parameters
+    ----------
+    adata : sc.AnnData
+        Anndata object with MapQC scores in adata.obs.mapqc_score. Both
+        mapqc.run_mapqc() and mapqc.evaluate() should have been run on
+        the adata object, as well as sc.tl.umap().
+    figsize : tuple[float, float], optional
+        Figure size per panel. Default is (6, 5).
+    return_fig : bool, optional
+        Return the figure object. Default is False.
+    umap_kwargs : dict, optional
+        Keyword arguments for scanpy's UMAP plotting.
+    """
+    if umap_kwargs is None:
+        umap_kwargs = {}
+    # Define palette
+    palette = {
+        "Reference": "grey",
+        ">2": "red",
+        "<=2": "antiquewhite",
+        "not sampled": "black",
+        "filtered out": "darkolivegreen",
+    }
+
+    # Create color array based on binary categories
+    colors = np.array([mcolors.to_rgba(palette[cat]) for cat in adata.obs.mapqc_score_binary])
+
+    # Create figure with extra space for legend
+    fig, gs = _umap_base(adata, colors, figsize, umap_kwargs, extra_width=0.75)
+
+    # Add legend
+    if gs is not None:
+        # Create legend elements
+        legend_elements = [plt.scatter([], [], c=color, marker="o", label=cat) for cat, color in palette.items()]
+
+        # Add legend at the top
+        fig.legend(
+            handles=legend_elements,
+            loc="upper center",
+            fontsize=10,
+            frameon=False,
+            bbox_to_anchor=(0.92, 0.95),
+        )
+
+    if return_fig:
+        return fig
+    else:
+        plt.show()
+
+
+def neighborhood_filtering(
+    adata: sc.AnnData,
+    figsize: tuple[float, float] = (6, 5),
+    return_fig: bool = False,
+    umap_kwargs: dict = None,
+    dotsize: float = 1,
+):
+    """
+    Plot UMAP of neighborhood filtering, split by case/control status.
+
+    UMAP shows neighborhood filtering for all center cells of the
+    neighborhoods used for mapQC score calculation.
+
+    Parameters
+    ----------
+    adata : sc.AnnData
+        Anndata object with neighborhood filtering in adata.obs.mapqc_nhood_filtering.
+        Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
+        the adata object, as well as sc.tl.umap().
+    figsize : tuple[float, float], optional
+        Figure size. Default is (6, 5).
+    return_fig : bool, optional
+        Return the figure object. Default is False.
+    umap_kwargs : dict, optional
+        Keyword arguments for scanpy's UMAP plotting.
+    dotsize : float, optional
+        Dot size. Default is 1.
+    """
+    if umap_kwargs is None:
+        umap_kwargs = {}
+    palette_filtering = {
+        "not sampled": "black",
+        "pass": "tab:green",
+        "not enough query cells": "tab:orange",
+        "not enough reference samples": "tab:red",
+        "not enough reference samples from different studies": "salmon",
+        "nan": "darkgrey",
+    }
+    fig, ax = plt.subplots(figsize=figsize)
+    dotsizes = np.ones(adata.n_obs) * dotsize
+    dotsizes[~pd.isnull(adata.obs.mapqc_nhood_filtering)] = dotsize * 30
+    sc.pl.umap(
+        adata,
+        color="mapqc_nhood_filtering",
+        frameon=False,
+        ax=ax,
+        show=False,
+        palette=palette_filtering,
+        size=dotsizes,
+        title="Neighborhood filtering",
+        **umap_kwargs,
+    )
+    if return_fig:
+        return fig
+    else:
+        plt.show()
+
+
+def neighborhood_center_cell(
+    adata: sc.AnnData,
+    center_cell: str,
+    figsize: tuple[float, float] = (6, 5),
+    return_fig: bool = False,
+    umap_kwargs: dict = None,
+    dotsize: float = 1,
+):
+    """
+    Plot UMAP highlighting a single neighborhood center cell.
+
+    Parameters
+    ----------
+    adata : sc.AnnData
+        Anndata object. Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
+        the adata object, as well as sc.tl.umap().
+    center_cell : str
+        Center cell to plot.
+    figsize : tuple[float, float], optional
+        Figure size. Default is (6, 5).
+    return_fig : bool, optional
+        Return the figure object. Default is False.
+    umap_kwargs : dict, optional
+        Keyword arguments for scanpy's UMAP plotting.
+    dotsize : float, optional
+        Dot size. Default is 1.
+    """
+    if umap_kwargs is None:
+        umap_kwargs = {}
+    _check_center_cell(adata, center_cell)
+    # plot
+    center_cell_idx = np.where(adata.obs.index == center_cell)[0][0]
+    colors = [mcolors.to_rgba("darkgrey")] * adata.n_obs
+    colors[center_cell_idx] = mcolors.to_rgba("black")
+    dotsizes = np.ones(adata.n_obs) * dotsize
+    dotsizes[center_cell_idx] = dotsize * 50
+    if "title" not in umap_kwargs:
+        umap_kwargs["title"] = f"Center cell {center_cell}"
+    fig, _ = _umap_base(
+        adata,
+        colors=colors,
+        figsize=figsize,
+        dotsizes=dotsizes,
+        umap_kwargs=umap_kwargs,
+        split_by_case_control=False,
+    )
+    if return_fig:
+        return fig
+    else:
+        plt.show()
+
+
+def neighborhood_cells(
+    adata: sc.AnnData,
+    center_cell: str,
+    nhood_info_df: pd.DataFrame,
+    figsize: tuple[float, float] = (6, 5),
+    dotsize: float = 1,
+    return_fig: bool = False,
+    umap_kwargs: dict = None,
+):
+    """
+    Plot UMAP of neighborhood cells.
+
+    Parameters
+    ----------
+    adata : sc.AnnData
+        Anndata object. Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
+        the adata object, as well as sc.tl.umap().
+    center_cell : str
+        Center cell to plot.
+    nhood_info_df : pd.DataFrame
+        DataFrame with neighborhood information. This is an optional output of mapqc.run(),
+        when the return_sample_dists_to_ref_df parameter is set to True.
+    figsize : tuple[float, float], optional
+        Figure size. Default is (6, 5).
+    dotsize : float, optional
+        Dot size. Default is 1.
+    return_fig : bool, optional
+        Return the figure object. Default is False.
+    umap_kwargs : dict, optional
+        Keyword arguments for scanpy's UMAP plotting.
+    """
+    if umap_kwargs is None:
+        umap_kwargs = {}
+    _check_center_cell(adata, center_cell)
+    # Convert knn_barcodes to list if stored as string
+    if isinstance(nhood_info_df["knn_barcodes"].iloc[0], str):
+        nhood_info_df.loc[:, "knn_barcodes"] = nhood_info_df["knn_barcodes"].apply(literal_eval)
+    nhood_cell_barcodes = nhood_info_df.loc[center_cell, "knn_barcodes"]
+    nhood_cell_idc = np.where(adata.obs.index.isin(nhood_cell_barcodes))[0]
+    colors = np.array([mcolors.to_rgba("darkgrey")] * adata.n_obs)
+    colors[nhood_cell_idc] = mcolors.to_rgba("black")
+    dotsizes = np.ones(adata.n_obs) * dotsize
+    dotsizes[nhood_cell_idc] = dotsize * 10
+    if "title" not in umap_kwargs:
+        umap_kwargs["title"] = f"Neighborhood cells of center cell\n{center_cell}"
+    fig, _ = _umap_base(
+        adata,
+        colors=colors,
+        figsize=figsize,
+        dotsizes=dotsizes,
+        umap_kwargs=umap_kwargs,
+        split_by_case_control=False,
+    )
+    if return_fig:
+        return fig
+    else:
+        plt.show()
+
+
+def _umap_base(
+    adata: sc.AnnData,
+    colors: np.ndarray,
+    figsize: tuple[float, float],
+    umap_kwargs: dict = None,
+    dotsizes: np.ndarray = None,
+    extra_width: float = 0,
+    split_by_case_control: bool = True,
+):
+    """
+    Base function for UMAP plotting with flexible layout control.
+
+    Parameters
+    ----------
+    adata : sc.AnnData
+        Anndata object with case_control annotation in adata.obs.case_control
+    colors : np.ndarray
+        Array of colors for each point
+    figsize : tuple[float, float]
+        Base figure size (will be adjusted for extra_width if needed)
+    umap_kwargs : dict, optional
+        Additional arguments for scanpy's UMAP plotting
+    dotsizes : np.ndarray, optional
+        Array of dot sizes for each point
+    extra_width : float, default 0
+        Extra width to add to the figure (e.g., for colorbar/legend)
+    split_by_case_control : bool, default True
+        Whether to split the UMAP by case/control status
+    """
+    if umap_kwargs is None:
+        umap_kwargs = {}
+    if split_by_case_control:
+        # Calculate figure size to maintain square subplots
+        control_cat = [cat for cat in adata.obs.case_control.unique() if cat.startswith("Control")][0]
+        case_cats = [cat for cat in adata.obs.case_control.unique() if cat.startswith("Case")]
+        n_figures = len(case_cats) + 1
+    else:
+        n_figures = 1
+
+    # Adjust figure size if extra width is needed
+    fig_width = figsize[0] * n_figures + extra_width
+    fig_height = figsize[1]
+    fig = plt.figure(figsize=(fig_width, fig_height))
+
+    # Create GridSpec with extra space if needed
+    if extra_width > 0:
+        gs = GridSpec(1, n_figures + 1, width_ratios=[1] * n_figures + [0.15])
+    else:
+        gs = GridSpec(1, n_figures)
+
+    # Plot UMAPs
+    if split_by_case_control:
+        for i, cat in enumerate([control_cat] + case_cats):
+            ax = fig.add_subplot(gs[0, i])
+            subset = adata.obs.case_control.isin(["Reference", cat]).values
+            # Create a copy of the subset to avoid the warning
+            adata_subset = adata[subset].copy()
+            color_subset = colors[subset]
+
+            sc.pl.umap(
+                adata_subset,  # Use the copy instead of the view
+                color=None,
+                frameon=False,
+                sort_order=False,
+                ax=ax,
+                show=False,
+                title=cat,
+                **umap_kwargs,
+            )
+            scatter = ax.collections[0]
+            scatter.set_facecolors(color_subset)
+            scatter.set_edgecolors("none")
+            if dotsizes is not None:
+                dotsize_subset = dotsizes[subset]
+                scatter.set_sizes(dotsize_subset)
+    else:
+        ax = fig.add_subplot(gs[0, 0])
+        sc.pl.umap(
+            adata,
+            color=None,
+            frameon=False,
+            sort_order=False,
+            ax=ax,
+            show=False,
+            **umap_kwargs,
+        )
+        scatter = ax.collections[0]
+        scatter.set_facecolors(colors)
+        scatter.set_edgecolors("none")
+        if dotsizes is not None:
+            scatter.set_sizes(dotsizes)
+    return (fig, gs)
+
+
+def _check_center_cell(adata: sc.AnnData, center_cell: str):
+    """Some checks to make sure the center cell is valid."""
+    # check if center_cell is in adata.obs.index
+    if center_cell not in adata.obs.index:
+        raise ValueError(f"Center cell {center_cell} not found in adata.obs.index")
+    # check if center_cell is in adata.obs.mapqc_nhood_filtering
+    if adata.obs.loc[center_cell, "mapqc_nhood_filtering"] is None:
+        raise ValueError(f"Cell {center_cell} was not a center cell.")

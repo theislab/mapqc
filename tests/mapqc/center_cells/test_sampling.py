@@ -8,7 +8,7 @@ from mapqc.center_cells.sampling import sample_center_cells_by_group
 
 
 @pytest.fixture
-def adata():
+def mock_adata():
     # same amount of reference and query cells in total (180 each)
     # cluster 1: cluster with only reference cells
     # cluster 2: many more query than reference cells
@@ -42,16 +42,16 @@ class MapQCParams:
     seed: int
 
 
-def test_sample_center_cells_by_group(adata):
-    params = MapQCParams(adata=adata, ref_q_key="ref_or_qu", q_cat="q", grouping_key="cl", n_nhoods=30, seed=42)
+def test_sample_center_cells_by_group(mock_adata):
+    params = MapQCParams(adata=mock_adata, ref_q_key="ref_or_qu", q_cat="q", grouping_key="cl", n_nhoods=30, seed=42)
     sampled_cells = sample_center_cells_by_group(
         params=params,
     )
-    n_cells_per_group = adata.obs.loc[sampled_cells, params.grouping_key].value_counts()
+    n_cells_per_group = mock_adata.obs.loc[sampled_cells, params.grouping_key].value_counts()
     # check that more cells are sampled from cluster 5 than from cluster 4
     assert n_cells_per_group[5] > n_cells_per_group[4]
     # check that only query cells are sampled:
-    assert (adata.obs.loc[sampled_cells, params.ref_q_key] == params.q_cat).all()
+    assert (mock_adata.obs.loc[sampled_cells, params.ref_q_key] == params.q_cat).all()
     # check that the same number of cells is sampled for cluster 3 and 5;
     # these clusters have the same number of cells in total, but with
     # a different distribution across reference and query cells

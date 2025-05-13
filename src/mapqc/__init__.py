@@ -2,6 +2,8 @@
 
 from importlib.metadata import version
 
+from . import plotting as pl
+from .evaluate import evaluate
 from .run import run_mapqc
 
 __version__ = version("mapqc")

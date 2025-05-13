@@ -100,11 +100,7 @@ def test_nhood_passing_filter(cell_info):
     knn_idc = np.argsort(dists[0])[: expected_nhood_info_dict["k"]]
     expected_nhood_info_dict["knn_idc"] = knn_idc
     # check equality of dictionaries
-    for key, true_value in nhood_info_dict.items():
-        if isinstance(true_value, np.ndarray):
-            assert (true_value == expected_nhood_info_dict[key]).all()
-        else:
-            assert true_value == expected_nhood_info_dict[key]
+    _compare_dictionaries(expected_nhood_info_dict, nhood_info_dict)
     # now check the pairwise distances
     # as we already included tests for the pairwise distance calculation
     # itself, we just need to check that the input is as we expect it,
@@ -156,7 +152,7 @@ def test_nhood_failing_query_filter(cell_info):
     # at cell number 10 (idx 9)
     expected_nhood_info_dict = {
         "center_cell": center_cell,
-        "k": None,
+        "k": np.nan,
         "filter_info": "not enough query cells",
         "samples_q": [],
     }
@@ -168,11 +164,7 @@ def test_nhood_failing_query_filter(cell_info):
     knn_idc = np.argsort(dists[0])[:kmin]
     expected_nhood_info_dict["knn_idc"] = knn_idc
     # check equality of dictionaries
-    for key, true_value in nhood_info_dict.items():
-        if isinstance(true_value, np.ndarray):
-            assert (true_value == expected_nhood_info_dict[key]).all()
-        else:
-            assert true_value == expected_nhood_info_dict[key]
+    _compare_dictionaries(expected_nhood_info_dict, nhood_info_dict)
     # and we expect an empty pw_dists matrix
     expected_pw_dists = np.full((len(samples_r_all), len(samples_r_all) + len(samples_q_all)), np.nan)
     np.testing.assert_equal(pw_dists, expected_pw_dists)
@@ -217,7 +209,7 @@ def test_nhood_failing_reference_filter(cell_info):
     # the reference filter should fail.
     expected_nhood_info_dict = {
         "center_cell": center_cell,
-        "k": None,
+        "k": np.nan,
         "filter_info": "not enough reference samples from different studies",
         "samples_q": [],
     }
@@ -229,11 +221,24 @@ def test_nhood_failing_reference_filter(cell_info):
     knn_idc = np.argsort(dists[0])[:kmin]
     expected_nhood_info_dict["knn_idc"] = knn_idc
     # check equality of dictionaries
-    for key, true_value in nhood_info_dict.items():
-        if isinstance(true_value, np.ndarray):
-            assert (true_value == expected_nhood_info_dict[key]).all()
-        else:
-            assert true_value == expected_nhood_info_dict[key]
+    _compare_dictionaries(expected_nhood_info_dict, nhood_info_dict)
     # and we expect an empty pw_dists matrix
     expected_pw_dists = np.full((len(samples_r_all), len(samples_r_all) + len(samples_q_all)), np.nan)
     np.testing.assert_equal(pw_dists, expected_pw_dists)
+
+
+def _compare_dictionaries(expected_dict, output_dict):
+    for key, true_value in output_dict.items():
+        if isinstance(true_value, np.ndarray):
+            if np.issubdtype(true_value.dtype, np.floating):
+                # For floating point arrays, use np.isclose to handle NaN values
+                assert np.isclose(true_value, expected_dict[key], equal_nan=True).all()
+            else:
+                # For non-floating point arrays, use direct comparison
+                assert (true_value == expected_dict[key]).all()
+        elif isinstance(true_value, (float | np.floating)):
+            # For scalar floats, use np.isclose to handle NaN values
+            assert np.isclose(true_value, expected_dict[key], equal_nan=True)
+        else:
+            # For other types, use direct comparison
+            assert true_value == expected_dict[key]
