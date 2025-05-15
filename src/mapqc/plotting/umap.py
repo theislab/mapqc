@@ -68,13 +68,13 @@ def mapqc_scores(
             loc="upper center",
             fontsize=10,
             frameon=False,
-            bbox_to_anchor=(0.92, 0.95),
+            bbox_to_anchor=(1.0, 0.95),
         )  # Position legend above colorbar
 
         # Add colorbar
         sm = plt.cm.ScalarMappable(cmap=plt.get_cmap(cmap_name), norm=plt.Normalize(vmin=vmin, vmax=vmax))
         sm.set_array([])
-        cbar = plt.colorbar(sm, cax=cbar_ax)
+        cbar = plt.colorbar(sm, cax=cbar_ax, extend="both")  # 'both' creates triangular ends
         cbar.set_label("MapQC score", fontsize=10)
 
     if return_fig:
@@ -133,7 +133,7 @@ def mapqc_scores_binary(
             loc="upper center",
             fontsize=10,
             frameon=False,
-            bbox_to_anchor=(0.92, 0.95),
+            bbox_to_anchor=(1.0, 0.95),
         )
 
     if return_fig:
@@ -256,6 +256,8 @@ def neighborhood_cells(
     adata: sc.AnnData,
     center_cell: str,
     nhood_info_df: pd.DataFrame,
+    color_by: str = None,
+    color_by_palette: str = "tab10",
     figsize: tuple[float, float] = (6, 5),
     dotsize: float = 1,
     return_fig: bool = False,
@@ -274,6 +276,10 @@ def neighborhood_cells(
     nhood_info_df : pd.DataFrame
         DataFrame with neighborhood information. This is an optional output of mapqc.run(),
         when the return_sample_dists_to_ref_df parameter is set to True.
+    color_by : str, optional
+        Metadata category (column name in adata.obs) to color the neighborhood cells by.
+    color_by_palette : str, optional
+        Name of a matplotlib color palette to use for coloring the neighborhood cells by. Default is "tab10".
     figsize : tuple[float, float], optional
         Figure size. Default is (6, 5).
     dotsize : float, optional
@@ -292,7 +298,14 @@ def neighborhood_cells(
     nhood_cell_barcodes = nhood_info_df.loc[center_cell, "knn_barcodes"]
     nhood_cell_idc = np.where(adata.obs.index.isin(nhood_cell_barcodes))[0]
     colors = np.array([mcolors.to_rgba("darkgrey")] * adata.n_obs)
-    colors[nhood_cell_idc] = mcolors.to_rgba("black")
+    if color_by is None:
+        colors[nhood_cell_idc] = mcolors.to_rgba("black")
+    else:
+        color_vector = adata.obs[color_by].values[nhood_cell_idc]
+        colors[nhood_cell_idc], value_to_color = _categorical_to_colors_rgba(
+            color_vector, palette_name=color_by_palette
+        )
+
     dotsizes = np.ones(adata.n_obs) * dotsize
     dotsizes[nhood_cell_idc] = dotsize * 10
     if "title" not in umap_kwargs:
@@ -305,6 +318,19 @@ def neighborhood_cells(
         umap_kwargs=umap_kwargs,
         split_by_case_control=False,
     )
+    if color_by is not None:
+        legend_elements = [
+            plt.scatter([], [], color=color, marker="o", label=cat) for cat, color in value_to_color.items()
+        ]
+
+        # Add legend at the top
+        fig.legend(
+            handles=legend_elements,
+            loc="upper center",
+            fontsize=10,
+            frameon=False,
+            bbox_to_anchor=(1.0, 0.95),
+        )
     if return_fig:
         return fig
     else:
@@ -413,3 +439,47 @@ def _check_center_cell(adata: sc.AnnData, center_cell: str):
     # check if center_cell is in adata.obs.mapqc_nhood_filtering
     if adata.obs.loc[center_cell, "mapqc_nhood_filtering"] is None:
         raise ValueError(f"Cell {center_cell} was not a center cell.")
+
+
+def _categorical_to_colors_rgba(
+    values: np.ndarray,
+    palette_name: str = "tab10",
+) -> tuple[np.ndarray, dict]:
+    """
+    Convert categorical values to RGBA colors using a matplotlib color palette.
+
+    Parameters
+    ----------
+    values : np.ndarray
+        Array of categorical values (can be strings, numbers, etc.)
+    palette_name : str, optional
+        Name of the matplotlib color palette to use. Default is "tab10".
+        Common options include: "tab10", "tab20", "Set1", "Set2", "Set3", "Paired"
+
+    Returns
+    -------
+    tuple
+        - np.ndarray: Array of RGBA colors, one for each input value
+        - dict: Dictionary mapping unique values to their RGBA colors
+    """
+    # Get unique values and their indices
+    unique_values = np.unique(values)
+    value_to_idx = {val: idx for idx, val in enumerate(unique_values)}
+
+    # Get the colormap
+    cmap = plt.get_cmap(palette_name)
+
+    # Map each value to a color
+    n_colors = len(unique_values)
+    # If we have more unique values than colors in the palette, we'll cycle through the palette
+    colors = cmap(np.arange(n_colors) % cmap.N)
+
+    # Create the output array
+    rgba_colors = np.zeros((len(values), 4))
+    for i, val in enumerate(values):
+        rgba_colors[i] = colors[value_to_idx[val]]
+
+    # Create dictionary mapping values to colors
+    value_to_color = {val: colors[idx] for val, idx in value_to_idx.items()}
+
+    return rgba_colors, value_to_color

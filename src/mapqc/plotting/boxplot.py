@@ -17,6 +17,7 @@ def sample_dists_to_ref_per_nhood(
     label_xticks_by: str = None,
     dotsize: float = 1,
     max_n_nhoods: int = 80,
+    ylim: tuple[float, float] = None,
     return_fig: bool = False,
 ):
     """
@@ -44,6 +45,8 @@ def sample_dists_to_ref_per_nhood(
     max_n_nhoods : int, optional
         Maximum number of neighborhoods to plot. Default is 80. These are randomly sampled (with
         a fixed seed).
+    ylim: tuple[float, float], optional
+        y-axis limits. Default is None.
     return_fig : bool, optional
         Return the figure object. Default is False.
     """
@@ -122,6 +125,8 @@ def sample_dists_to_ref_per_nhood(
         legend=False,
         orient="vertical",
     )
+    # draw horizontal, dashed red line at y=2:
+    plt.axhline(y=2, linestyle="--", alpha=0.8, linewidth=2, color="red")
     leg = plt.legend(loc=(1.01, 0.4), frameon=False, title="")
     leg._legend_box.align = "left"
     if label_xticks_by is None:
@@ -134,6 +139,8 @@ def sample_dists_to_ref_per_nhood(
         ax.set_xticklabels(nhood_labels, rotation=90)
         ax.set_xlabel(f"Neighborhood, named by {label_xticks_by} of its center cell")
     ax.set_ylabel("Sample distance to reference")
+    if ylim is not None:
+        ax.set_ylim(ylim)
     if return_fig:
         return fig
     else:
@@ -148,7 +155,9 @@ def mapqc_scores(
     figsize: tuple[float, float] = (24, 8),
     dotsize: float = 1,
     return_fig: bool = False,
-    palette: dict = None,
+    palette_case_control: dict = None,
+    color_dots_by: str = None,
+    palette_dots: dict = None,
     ylim: tuple[float, float] = None,
     boxplot_kwargs: dict = None,
 ):
@@ -175,8 +184,12 @@ def mapqc_scores(
         Dot size for the dots showing individual data points in the boxplot. Default is 1.
     return_fig : bool, optional
         Return the figure object. Default is False.
-    palette : dict, optional
-        Color palette. Default is None.
+    palette_case_control : dict, optional
+        Color palette for the boxes (controls and case categories). Default is None.
+    color_dots_by : str, optional
+        Metadata category (column in adata.obs) to color the dots by. Default is None.
+    palette_dots : dict, optional
+        Color palette for the dots, if color_dots_by is provided. Default is None.
     ylim : tuple[float, float], optional
         y-axis limits. Default is None.
     boxplot_kwargs : dict, optional
@@ -189,7 +202,10 @@ def mapqc_scores(
     q_cat = adata.uns["mapqc_params"]["q_cat"]
     control_cat_name = [cat for cat in adata.obs.case_control.unique() if cat.startswith("Control")][0]
     case_cats = [cat for cat in adata.obs.case_control.unique() if cat.startswith("Case")]
-    plotting_df = adata.obs.loc[:, [grouping_key, ref_q_key, "mapqc_score", "case_control"]]
+    obs_cols_to_keep = [grouping_key, ref_q_key, "mapqc_score", "case_control"]
+    if color_dots_by is not None:
+        obs_cols_to_keep.append(color_dots_by)
+    plotting_df = adata.obs.loc[:, obs_cols_to_keep]
     plotting_df["case_control"] = plotting_df["case_control"].tolist()
     # subset to query only
     plotting_df = plotting_df.loc[plotting_df[ref_q_key] == q_cat]
@@ -217,54 +233,99 @@ def mapqc_scores(
         ],
         :,
     ]
-    # keep only groups in groups_to_order:
+    # keep only groups in groups_to_order and set order:
     if group_order is not None:
         plotting_df = plotting_df.loc[plotting_df[grouping_key].isin(group_order)]
         # keep only groups in group_order that are still in plotting_df:
         group_order = [group for group in group_order if group in plotting_df[grouping_key].unique()]
     else:
         group_order = sorted(plotting_df[grouping_key].unique())
-    # set order:
+    # create color vector for stripplot, i.e. for the dots
+    if color_dots_by is not None:
+        plotting_df[color_dots_by] = plotting_df[color_dots_by].tolist()
 
-    fig, ax = plt.subplots(figsize=figsize)
-    if palette is None:
-        palette = _create_case_control_palette(adata)
+    if palette_case_control is None:
+        palette_case_control = _create_case_control_palette(adata)
     hue_order = [control_cat_name] + case_cats
-    sns.boxplot(
-        data=plotting_df,
-        x=grouping_key,
-        y="mapqc_score",
-        hue="case_control",
-        order=group_order,
-        hue_order=hue_order,
-        palette=palette,
-        ax=ax,
-        saturation=0.5,
-        fliersize=0,
-        orient="vertical",
-        **boxplot_kwargs,
-    )
-    sns.stripplot(
-        data=plotting_df,
-        x=grouping_key,
-        y="mapqc_score",
-        hue="case_control",
-        order=group_order,
-        hue_order=hue_order,
-        dodge=True,
-        ax=ax,
-        size=dotsize,
-        palette="dark:black",
-        legend=False,
-        orient="vertical",
-    )
-    plt.axhline(y=2, linestyle="--", alpha=0.8, linewidth=2, color="red")
-    if ylim is not None:
-        ax.set_ylim(ylim)
-    ax.tick_params(axis="x", rotation=90)
-    ax.set_ylabel("MapQC score")
-    leg = plt.legend(loc=(1.01, 0.4), frameon=False, title="")
-    leg._legend_box.align = "left"
+    if color_dots_by is None:
+        fig, ax = plt.subplots(figsize=figsize)
+        # create a single boxplot for all case control groups
+        sns.boxplot(
+            data=plotting_df,
+            x=grouping_key,
+            y="mapqc_score",
+            hue="case_control",
+            order=group_order,
+            hue_order=hue_order,
+            palette=palette_case_control,
+            ax=ax,
+            saturation=0.5,
+            fliersize=0,
+            whis=(5, 95),  # make whiskers extend to 5th and 95th percentiles
+            orient="vertical",
+            **boxplot_kwargs,
+        )
+        sns.stripplot(
+            data=plotting_df,
+            x=grouping_key,
+            y="mapqc_score",
+            hue="case_control",
+            order=group_order,
+            hue_order=hue_order,
+            dodge=True,
+            ax=ax,
+            size=dotsize,
+            palette="dark:black",
+            legend=False,
+            orient="vertical",
+        )
+        leg = plt.legend(loc=(1.01, 0.4), frameon=False, title="Control/case category", markerscale=10)
+        leg._legend_box.align = "left"
+        plt.axhline(y=2, linestyle="--", alpha=0.8, linewidth=2, color="red")
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        ax.tick_params(axis="x", rotation=90)
+        ax.set_ylabel("MapQC score")
+    else:
+        plots_to_generate = [control_cat_name] + case_cats
+        fig, axs = plt.subplots(len(plots_to_generate), 1, figsize=(figsize[0], figsize[1] * len(plots_to_generate)))
+        if palette_dots is None:
+            palette_dots = "tab10"
+        for case_control_group, ax in zip(plots_to_generate, axs, strict=False):
+            sns.boxplot(
+                data=plotting_df.loc[plotting_df["case_control"] == case_control_group],
+                x=grouping_key,
+                y="mapqc_score",
+                ax=ax,
+                saturation=0.5,
+                fliersize=0,
+                color=palette_case_control[case_control_group],
+                orient="vertical",
+                legend=False,
+                **boxplot_kwargs,
+            )
+            sns.stripplot(
+                data=plotting_df.loc[plotting_df["case_control"] == case_control_group],
+                x=grouping_key,
+                y="mapqc_score",
+                hue=color_dots_by,
+                dodge=False,
+                ax=ax,
+                size=dotsize,
+                palette=palette_dots,
+                legend=True,
+                orient="vertical",
+            )
+            ax.set_title(case_control_group)
+            leg = ax.legend(loc=(1.01, 0.4), frameon=False, title=color_dots_by, markerscale=10)
+            leg._legend_box.align = "left"
+            ax.axhline(y=2, linestyle="--", alpha=0.8, linewidth=2, color="red")
+            if ylim is not None:
+                ax.set_ylim(ylim)
+            ax.tick_params(axis="x", rotation=90)
+            ax.set_ylabel("MapQC score")
+
+    plt.tight_layout()
     if return_fig:
         return fig
     else:

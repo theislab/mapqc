@@ -24,7 +24,7 @@ def test_mapqc_scores_boxplot(mapqc_output_adata):
             category=PendingDeprecationWarning,
             message="vert: bool will be deprecated in a future version",
         )
-        boxplot.mapqc_scores(mapqc_output_adata, grouping_key="ann_level_2_pred")
+        boxplot.mapqc_scores(mapqc_output_adata, grouping_key="ann_level_3")
 
 
 def test_sample_dists_to_ref(mapqc_output_adata, sample_dists_df):
@@ -40,5 +40,5 @@ def test_sample_dists_to_ref(mapqc_output_adata, sample_dists_df):
         boxplot.sample_dists_to_ref_per_nhood(
             mapqc_output_adata,
             sample_dists_to_ref_df=sample_dists_df,
-            label_xticks_by="ann_level_2_pred",
+            label_xticks_by="ann_level_3",
         )
