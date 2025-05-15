@@ -28,8 +28,8 @@ def run_mapqc(
     n_nhoods: int,
     k_min: int,
     k_max: int,
-    min_n_cells: int,
-    min_n_samples_r: int,
+    min_n_cells: int = 10,
+    min_n_samples_r: int = 3,
     study_key: str = None,
     exclude_same_study: bool = True,
     grouping_key: str = None,
@@ -76,9 +76,9 @@ def run_mapqc(
     k_max : int
         Maximum number of cells per neighborhood, if the neighborhood of size k_min does not fulfill
         filtering criteria.
-    min_n_cells : int
+    min_n_cells : int = 10
         Minimum number of cells required per sample, in a neighborhood
-    min_n_samples_r : int
+    min_n_samples_r : int = 3
         Minimum number of reference samples (with at least min_n_cells cells) required per neighborhood
     exclude_same_study : bool = True
         Whether to exclude samples from the same study when calculating distances

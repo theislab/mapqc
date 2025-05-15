@@ -53,7 +53,7 @@ def _check_adata(adata, adata_emb_loc):
     if adata_emb.shape[1] > 500:
         warnings.warn(
             "Your embedding has more than 500 dimensions. Are you sure this is the low-dimensional mapping-based embedding?",
-            stacklevel=3,
+            stacklevel=4,
         )
 
 
@@ -102,7 +102,8 @@ def _check_study_arguments(adata, study_key, exclude_same_study):
     if not exclude_same_study:
         if study_key is not None:
             warnings.warn(
-                "study_key argument was set, but will be ignored as exclude_same_study was set to False.", stacklevel=3
+                "study_key argument was set, but will be ignored as exclude_same_study was set to False.",
+                stacklevel=4,
             )
     else:
         if not isinstance(study_key, str):
@@ -127,7 +128,7 @@ def _check_n_nhoods(adata, n_nhoods, ref_q_key, q_cat):
     if n_query_cells / n_nhoods < 50:
         warnings.warn(
             "Note that your number of neighborhoods n_nhoods is relatively high given the number of query cells in your data. This is likely unnecessary and will slow down calculation of mapQC scores.",
-            stacklevel=3,
+            stacklevel=4,
         )
 
 
@@ -147,15 +148,15 @@ def _check_k_arguments(adata, ref_q_key, q_cat, k_min, k_max, adaptive_k_margin)
             raise ValueError("adaptive_k_margin must be greater than 0.")
         if adaptive_k_margin > 1:
             raise ValueError("adaptive_k_margin must be less than 1.")
-        if k_max / k_min > 10:
+        if k_max / k_min > 20:
             warnings.warn(
-                "We do not recommend setting k_max to more than 10 times k_min. This is likely to result in very large k values, which may slow down calculation of mapQC scores.",
-                stacklevel=3,
+                "We do not recommend setting k_max to more than 20 times k_min. This is likely to result in very large k values, which may slow down calculation of mapQC scores.",
+                stacklevel=4,
             )
     if n_query_cells / k_min < 50:
         warnings.warn(
-            f"Your total number of query cells is {n_query_cells}, while you set your k_min to {k_min}. This is likely a too large k_min given the number of query cells, unless you expect very little cellular heterogeneity in your data (e.g. one or two cell types).",
-            stacklevel=3,
+            f"Your total number of query cells is {n_query_cells}, while you set your k_min to {k_min}. This could be a too large k_min given the number of query cells, unless you expect very little cellular heterogeneity in your data (e.g. a limited number of cell types).",
+            stacklevel=4,
         )
 
 
