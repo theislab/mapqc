@@ -12,17 +12,28 @@ A metric for the evaluation of single-cell query-to-reference mappings
 
 Please refer to the [documentation][], in particular, the [API documentation][]. A few notes on how and when to use MapQC.
 
-### What are the data requirements to use mapQC?
+### What does mapQC do?
 
-1. **Reference**: MapQC is meant to evaluate the mapping of a given dataset to an existing, large-scale reference. It assumes the reference more or less covers the diversity of the control population (e.g. diversity among healthy individuals for the case of human data, or of unperturbed organoids generated with a wide array of protocols for an organoid dataset). Therefore, a mapping of a single dataset to another single dataset is likely to not fulfill these assumptions, and mapQC is not guaranteed to work well.
+MapQC evaluates the quality of an exisiting query-to-reference mapping, by quantifying the distance between query and reference samples. Rather than using a standard metric to calculate this distance, it compares the expected inter-sample distance (based on controls in the references) to the observed distance between query samples and reference samples, and outputs a normalized distance called the mapQC score for every query cell. MapQC calculates inter-sample distances in a local, per-neighborhood manner. (For more methodological details, check out the preprint.) <br>
+The reference is expected to cover most of the diversity existing in the control population (e.g. young and old, low and high BMI, smokers and non-smokers, different ethnicities, etc. for human data), such that the controls in the query are expected to look similar to some of the samples in the reference. Therefore, mapQC works best if the reference is a large-scale reference including data from many individuals. Moreover, the query needs to includes control samples, such that we know for a subset of query samples how well they should integrate with the reference.<br>
+MapQC scores can be regarded as a Z-scored distance to the reference score (Z-scored based on the inter-sample distances in the reference itself), such that a mapQC score of 2 for a given query cell represents a distance to the reference of two standard deviations above the expected distance (based on the reference). Therefore, mapQC scores > 2 are considered high, and indicate either remaining batch effects (if seen in control samples) or disease-specific cell states (if seen in case but not in control samples).
 
-2. **Query**: The query is expected to have both control and case samples in the query. It can also be run without case samples, but should always include controls.
+### What are the data requirements for using mapQC?
 
-3. **Reference Data**: MapQC runs on a scanpy AnnData object, that includes the *control* cells from the reference (i.e. no perturbed or diseased cells!) and *no perturbed/diseased/etc.* cells in the reference. Make sure to exclude these before running mapQC.
+In short, you need:
+- One AnnData object
+- A large scale reference, including only its healthy/control cells.
+- A mapped query dataset, with healthy/control cells (must-have) and case/perturbed cells (if you have them).
+- Metadata (see below)
+- A mapping-derived embedding of both the reference and the query
 
-4. **Query Data**: For the query, include both control and case/perturbed samples. The query cells should be in the same AnnData object as the reference.
+Below, the exact requirements are outlined in more detail.
 
-5. **Required Metadata**: Several metadata columns need to be present in your adata.obs:
+1. **Reference**: MapQC is meant to evaluate the mapping of a given dataset to an existing, large-scale reference. It assumes the reference more or less covers the diversity of the control population (e.g. diversity among healthy individuals for the case of human data, or of unperturbed organoids generated with a wide array of protocols for an organoid dataset). Therefore, a mapping of a single dataset to another single dataset is likely to not fulfill these assumptions, and mapQC is not guaranteed to work well. MapQC runs on a scanpy AnnData object, that includes the *control* cells from the reference (i.e. no perturbed or diseased cells!) and *no perturbed/diseased/etc.* cells in the reference. Make sure to exclude these before running mapQC.
+
+2. **Query**: The query (the dataset mapped to the reference) is expected to have both control and case samples. MapQC can also be run without case samples in the query, but it should always include controls. The query cells should be in the same AnnData object as the reference.
+
+3. **Required Metadata**: Several metadata columns need to be present in your adata.obs:
 
    The following need a value for every cell from both the reference and the query. Column names can be set as wanted:
    - A "study" key, specifying from which study/dataset each cell in the reference and query came. The query is assumed to come from a single study. If the query includes multiple studies, map these separately and run mapQC on each of them separately.
@@ -35,7 +46,7 @@ Please refer to the [documentation][], in particular, the [API documentation][].
    And for the query:
    - A "condition" key, specifying for the query what condition (case/control etc.) each cell belongs to, e.g. the disease of the patient from which the sample came or if it was a control.
 
-6. **Embedding Data**: Your adata object needs to include the mapped embedding, including coordinates for both the reference and the query. These can be stored either in adata.X or in adata.obsm.
+4. **Embedding Data**: Your adata object needs to include the mapped embedding, including coordinates for both the reference and the query. These can be stored either in adata.X or in adata.obsm.
 
 ## Installation
 
