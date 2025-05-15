@@ -8,7 +8,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-import scanpy as sc
+from anndata import AnnData
 
 from mapqc._center_cells._sampling import _sample_center_cells_by_group
 from mapqc._distances._normalized_distances import _get_normalized_dists_to_ref
@@ -19,7 +19,7 @@ from mapqc._utils._validation import _validate_input_params
 
 
 def run_mapqc(
-    adata: sc.AnnData,
+    adata: AnnData,
     adata_emb_loc: str,
     ref_q_key: str,
     q_cat: str,
@@ -30,32 +30,35 @@ def run_mapqc(
     k_max: int,
     min_n_cells: int = 10,
     min_n_samples_r: int = 3,
-    study_key: str = None,
+    study_key: str | None = None,
     exclude_same_study: bool = True,
-    grouping_key: str = None,
+    grouping_key: str | None = None,
     distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance",
-    seed: int = None,
+    seed: int | None = None,
     overwrite: bool = False,
     return_nhood_info_df: bool = False,
     return_sample_dists_to_ref_df: bool = False,
-):
+) -> None | pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
     """
     Run mapqc on an AnnData object.
 
     This function modifies the input AnnData object in-place by adding several new columns to adata.obs:
-    - 'mapqc_score': Contains the mapqc scores for query cells (NaN for reference cells)
-    - 'mapqc_filtering': Contains filtering information for query cells (None for reference cells)
-    - 'mapqc_nhood_filtering': Contains filtering information for each neighborhood
-    - 'mapqc_nhood_number': Contains the number of the neighborhood
-    - 'mapqc_k': Contains the size of the neighborhood
+
+    * 'mapqc_score': Contains the mapqc scores for query cells (NaN for reference cells)
+    * 'mapqc_filtering': Contains filtering information for query cells (None for reference cells)
+    * 'mapqc_nhood_filtering': Contains filtering information for each neighborhood
+    * 'mapqc_nhood_number': Contains the number of the neighborhood
+    * 'mapqc_k': Contains the size of the neighborhood
+
     It also adds a dictionary including the input parameter values to adata.uns['mapqc_params']
+
     Finally, if return_nhood_info_df is True, the function will return a pandas DataFrame containing
     the neighborhood information, and if return_sample_dists_to_ref_df is True, the function will return
     a pandas DataFrame containing the sample distances to reference for each neighborhood.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : AnnData
         The AnnData object including both the reference and the query cells.
         This object will be modified in-place. Important! The AnnData object should include
         *only* controls for the reference, and should include some controls for the query.
@@ -76,51 +79,48 @@ def run_mapqc(
     k_max : int
         Maximum number of cells per neighborhood, if the neighborhood of size k_min does not fulfill
         filtering criteria.
-    min_n_cells : int = 10
-        Minimum number of cells required per sample, in a neighborhood
-    min_n_samples_r : int = 3
-        Minimum number of reference samples (with at least min_n_cells cells) required per neighborhood
-    exclude_same_study : bool = True
+    min_n_cells : int, optional
+        Minimum number of cells required per sample, in a neighborhood. Default is 10.
+    min_n_samples_r : int, optional
+        Minimum number of reference samples (with at least min_n_cells cells) required per neighborhood. Default is 3.
+    exclude_same_study : bool, optional
         Whether to exclude samples from the same study when calculating distances
         between reference samples. To prevent bias in inter-sample distances within
         the reference, we recommend excluding inter-sample distances between samples
-        from the same study, i.e. setting this argument to True.
-    study_key : str = None
+        from the same study, i.e. setting this argument to True. Default is True.
+    study_key : str, optional
         Key in adata.obs that contains study identifiers (needed if exclude_same_study is True)
-    grouping_key : str = None
+    grouping_key : str, optional
         Key in adata.obs that contains grouping information, which will be used to sample
         center cells (i.e. the centers of neighborhoods). If not provided, center cells will
         be sampled randomly from the query. If provided, center cells will be sampled based
         on query and reference cell proportions per group of the grouping key. This can be
         set to e.g. a clustering performed on the joint reference and query, or a (preliminary)
         cell type annotation of reference and query.
-    distance_metric: Literal["energy_distance", "pairwise_euclidean"] = "energy_distance"
+    distance_metric : {"energy_distance", "pairwise_euclidean"}, optional
         Distance metric to use to calculate distances between samples (i.e. between
-        two sets of cells).
-    seed: int = None
+        two sets of cells). Default is "energy_distance".
+    seed : int, optional
         Seed for random number generator. Set the seed to ensure reproducibility of results.
-    overwrite: bool = False
-        Whether to overwrite existing mapqc_score and mapqc_filtering columns in adata.obs.
-    return_nhood_info_df: bool = False
+    overwrite : bool, optional
+        Whether to overwrite existing mapqc_score and mapqc_filtering columns in adata.obs. Default is False.
+    return_nhood_info_df : bool, optional
         Whether to return a pandas DataFrame containing detailed neighborhood information.
         This can be useful for debugging, or for getting a detailed understanding of your
-        neighborhoods and the mapqc output.
+        neighborhoods and the mapqc output. Default is False.
+    return_sample_dists_to_ref_df : bool, optional
+        Whether to return a pandas DataFrame containing the sample distances to reference for each neighborhood. Default is False.
 
     Returns
     -------
-    None
+    None or pd.DataFrame or tuple
         This function modifies the input AnnData object in-place by adding 'mapqc_score',
         'mapqc_filtering', 'mapqc_nhood_filtering', 'mapqc_nhood_number', and 'mapqc_k'
         columns to adata.obs. It furthermore adds a dictionary including the input parameter
         values to adata.uns['mapqc_params'].
-        No values are returned, unless return_nhood_info_df is True.
-    nhood_info_df: pd.DataFrame
-        A pandas DataFrame containing detailed neighborhood information. This can be useful for
-        debugging, or for getting a detailed understanding of your neighborhoods and the mapqc
-        output. Only returned if return_nhood_info_df is True.
-    sample_dists_to_ref_df: pd.DataFrame
-        A pandas DataFrame containing the sample distances to reference for each neighborhood.
-        Only returned if return_sample_dists_to_ref_df is True.
+        If return_nhood_info_df is True, returns a pandas DataFrame containing detailed neighborhood information.
+        If return_sample_dists_to_ref_df is True, returns a pandas DataFrame containing the sample distances to reference.
+        If both are True, returns a tuple of (nhood_info_df, sample_dists_to_ref_df).
     """
     # Create parameter object for internal use
     params = _MapQCParams(

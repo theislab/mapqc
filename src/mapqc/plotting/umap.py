@@ -19,7 +19,7 @@ def mapqc_scores(
     umap_kwargs: dict = None,
 ):
     """
-    Plot UMAP of MapQC scores, split by case/control status.
+    Plot UMAP colored by MapQC scores, split by case/control status.
 
     Parameters
     ----------
@@ -90,7 +90,7 @@ def mapqc_scores_binary(
     umap_kwargs: dict = None,
 ):
     """
-    Plot UMAP of MapQC scores (binary, >2 or <=2), split by case/control status.
+    Plot UMAP colored by MapQC scores (binary, >2 or <=2), split by case/control status.
 
     Parameters
     ----------
@@ -150,7 +150,7 @@ def neighborhood_filtering(
     dotsize: float = 1,
 ):
     """
-    Plot UMAP of neighborhood filtering, split by case/control status.
+    Plot UMAP colored by neighborhood filtering status.
 
     UMAP shows neighborhood filtering for all center cells of the
     neighborhoods used for mapQC score calculation.
@@ -264,7 +264,7 @@ def neighborhood_cells(
     umap_kwargs: dict = None,
 ):
     """
-    Plot UMAP of neighborhood cells.
+    Plot UMAP highlighting all cells in the neighborhood of a given center cell.
 
     Parameters
     ----------

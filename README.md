@@ -20,8 +20,7 @@ MapQC scores can be regarded as a Z-scored distance to the reference score (Z-sc
 
 ### What are the data requirements for using mapQC?
 
-In short, you need:
-- One AnnData object
+In short, you need one AnnData object, including:
 - A large scale reference, including only its healthy/control cells.
 - A mapped query dataset, with healthy/control cells (must-have) and case/perturbed cells (if you have them).
 - Metadata (see below)

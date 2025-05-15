@@ -6,10 +6,11 @@ This module provides functions for evaluating the performance of mapqc.
 
 import pandas as pd
 import scanpy as sc
+from anndata import AnnData
 
 
 def evaluate(
-    adata: sc.AnnData,
+    adata: AnnData,
     case_control_key: str,
     case_cats: list[str],
     control_cats: list[str],
@@ -19,7 +20,7 @@ def evaluate(
 
     Parameters
     ----------
-    adata: sc.AnnData
+    adata: AnnData
         AnnData object with mapQC output (i.e. mapqc.run() has been run)
     case_control_key: str
         Column name in adata.obs that contains the case-control information
@@ -37,14 +38,17 @@ def evaluate(
     Returns
     -------
         dict of statistics:
-        - 'perc_nhoods_pass': percentage of neighborhoods that passed filtering
-        - 'perc_cells_sampled': percentage of cells that were sampled
-        - 'perc_sampled_cells_pass': percentage of sampled cells that passed filtering
-        - 'perc_[control_cat]_cells_dist_to_ref': percentage of [control_cat] cells
+        * 'perc_nhoods_pass': percentage of neighborhoods that passed filtering
+        * 'perc_cells_sampled': percentage of cells that were sampled
+        * 'perc_sampled_cells_pass': percentage of sampled cells that passed filtering
+        * 'perc_[control_cat]_cells_dist_to_ref': percentage of [control_cat] cells
         that passed filtering that were distant to the reference (mapQC score > 2)
-        - 'perc_[case_cat]_cells_dist_to_ref': percentage of [case_cat] cells
+        * 'perc_[case_cat]_cells_dist_to_ref': percentage of [case_cat] cells
         that passed filtering that were distant to the reference (mapQC score > 2),
         for each case_cat included in case_cats.
+
+        In addition to returning these statistics as a dictionary, the function
+        prints each statistic to the console as it is calculated.
 
     """
     _validate_input(adata, case_control_key, case_cats, control_cats)
