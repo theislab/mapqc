@@ -1,4 +1,4 @@
-Plotting Module
+Plotting: `mapqc.pl`
 ==============
 
 Visualization tools for mapqc analysis results.

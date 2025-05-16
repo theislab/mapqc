@@ -3,12 +3,13 @@ Boxplots
 
 Functions for creating and customizing boxplot visualizations of mapqc results.
 
-.. module:: mapqc.plotting.boxplot
-.. currentmodule:: mapqc.plotting.boxplot
+.. module:: mapqc.pl.boxplot
+.. currentmodule:: mapqc.pl.boxplot
 
 .. autosummary::
    :toctree: generated
-   :template: module.rst
+   :template: function.rst
+   :nosignatures:
 
-   sample_dists_to_ref_per_nhood
-   mapqc_scores
+   mapqc.pl.boxplot.sample_dists_to_ref_per_nhood
+   mapqc.pl.boxplot.mapqc_scores

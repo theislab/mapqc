@@ -37,18 +37,27 @@ def evaluate(
 
     Returns
     -------
-        dict of statistics:
-        * 'perc_nhoods_pass': percentage of neighborhoods that passed filtering
-        * 'perc_cells_sampled': percentage of cells that were sampled
-        * 'perc_sampled_cells_pass': percentage of sampled cells that passed filtering
-        * 'perc_[control_cat]_cells_dist_to_ref': percentage of [control_cat] cells
-        that passed filtering that were distant to the reference (mapQC score > 2)
-        * 'perc_[case_cat]_cells_dist_to_ref': percentage of [case_cat] cells
-        that passed filtering that were distant to the reference (mapQC score > 2),
-        for each case_cat included in case_cats.
+    dict of statistics:
+        Dictionary containing the following statistics:
 
-        In addition to returning these statistics as a dictionary, the function
-        prints each statistic to the console as it is calculated.
+        * perc_nhoods_pass : float
+            Percentage of neighborhoods that passed filtering
+        * perc_cells_sampled : float
+            Percentage of cells that were sampled
+        * perc_sampled_cells_pass : float
+            Percentage of sampled cells that passed filtering
+        * perc_[control_cat]_cells_dist_to_ref : float
+            Percentage of [control_cat] cells that passed filtering that were
+            distant to the reference (mapQC score > 2)
+        * perc_[case_cat]_cells_dist_to_ref : float
+            Percentage of [case_cat] cells that passed filtering that were
+            distant to the reference (mapQC score > 2), for each case_cat
+            included in case_cats
+
+    Notes
+    -----
+    In addition to returning these statistics as a dictionary, the function
+    prints each statistic to the console as it is calculated.
 
     """
     _validate_input(adata, case_control_key, case_cats, control_cats)

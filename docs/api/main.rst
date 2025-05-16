@@ -7,8 +7,9 @@ Core functionality of the mapqc package.
 
 .. autosummary::
    :toctree: generated
-   :template: module.rst
+   :template: function.rst
+   :nosignatures:
    :recursive:
 
-   run_mapqc
-   evaluate
+   mapqc.run_mapqc
+   mapqc.evaluate

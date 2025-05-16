@@ -1,4 +1,4 @@
-# mapqc
+# mapQC
 
 [![Tests][badge-tests]][tests]
 [![Documentation][badge-docs]][documentation]

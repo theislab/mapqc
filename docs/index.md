@@ -5,7 +5,7 @@
 
 The documentation is organized into the following sections:
 
-- [API Reference](api.md): Detailed documentation of all functions and classes
+- [API Reference](api/index): Detailed documentation of all functions and classes
 - [Example Notebooks](notebooks/): Tutorials and examples
 - [Contributing](contributing.md): How to contribute to the project
 - [Changelog](changelog.md): Version history
@@ -15,7 +15,7 @@ The documentation is organized into the following sections:
 :hidden: true
 :maxdepth: 1
 
-api.md
+api/index
 changelog.md
 contributing.md
 references.md

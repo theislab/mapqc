@@ -3,15 +3,16 @@ UMAP Plots
 
 Functions for creating and customizing UMAP visualizations of mapqc results.
 
-.. module:: mapqc.plotting.umap
-.. currentmodule:: mapqc.plotting.umap
+.. module:: mapqc.pl.umap
+.. currentmodule:: mapqc.pl.umap
 
 .. autosummary::
    :toctree: generated
-   :template: module.rst
+   :template: function.rst
+   :nosignatures:
 
-   mapqc_scores
-   mapqc_scores_binary
-   neighborhood_filtering
-   neighborhood_center_cell
-   neighborhood_cells
+   mapqc.pl.umap.mapqc_scores
+   mapqc.pl.umap.mapqc_scores_binary
+   mapqc.pl.umap.neighborhood_filtering
+   mapqc.pl.umap.neighborhood_center_cell
+   mapqc.pl.umap.neighborhood_cells
