@@ -1,11 +1,17 @@
-API Reference
-=============
+API
+===
+.. currentmodule:: mapqc
 
-This section provides detailed documentation for the mapqc package API.
+.. autosummary::
+   :toctree: generated
+   :template: function.rst
+   :nosignatures:
+   :recursive:
+
+   run_mapqc
+   evaluate
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 4
 
-   main
-   plotting/index
+   pl/index

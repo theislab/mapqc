@@ -50,7 +50,6 @@ Below, the exact requirements are outlined in more detail.
 ## Installation
 
 You need to have Python 3.10 or newer installed on your system.
-If you don't have Python installed, we recommend installing [Mambaforge][].
 
 There are several alternative options to install mapqc:
 
@@ -74,8 +73,7 @@ See the [changelog][].
 
 ## Contact
 
-For questions and help requests, you can reach out in the [scverse discourse][].
-If you found a bug, please use the [issue tracker][].
+For questions and help requests, submit an issue on the mapQC GitHub page.
 
 ## Citation
 

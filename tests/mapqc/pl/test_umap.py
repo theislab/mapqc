@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import pytest
 
-import mapqc.plotting.umap as umap
+import mapqc.pl.umap as umap
 
 # for now we're just testing that plotting funcitons don't throw errors or warnings
 

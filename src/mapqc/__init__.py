@@ -2,7 +2,7 @@
 
 from importlib.metadata import version
 
-from . import plotting as pl
+from . import pl
 from .evaluate import evaluate
 from .run import run_mapqc
 

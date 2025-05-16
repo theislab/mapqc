@@ -4,7 +4,7 @@ import warnings
 import pandas as pd
 import pytest
 
-import mapqc.plotting.boxplot as boxplot
+import mapqc.pl.boxplot as boxplot
 
 # Note that we're just testing that the plotting functions don't throw errors or warnings for now.
 
