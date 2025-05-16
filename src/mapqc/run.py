@@ -6,9 +6,9 @@ This module provides the primary function that users will interact with.
 
 from typing import Literal
 
+import anndata
 import numpy as np
 import pandas as pd
-from anndata import AnnData
 
 from mapqc._center_cells._sampling import _sample_center_cells_by_group
 from mapqc._distances._normalized_distances import _get_normalized_dists_to_ref
@@ -19,7 +19,7 @@ from mapqc._utils._validation import _validate_input_params
 
 
 def run_mapqc(
-    adata: AnnData,
+    adata: anndata.AnnData,
     adata_emb_loc: str,
     ref_q_key: str,
     q_cat: str,
@@ -58,57 +58,57 @@ def run_mapqc(
 
     Parameters
     ----------
-    adata : AnnData
+    adata
         The AnnData object including both the reference and the query cells.
         This object will be modified in-place. Important! The AnnData object should include
         *only* controls for the reference, and should include some controls for the query.
-    adata_emb_loc : str
+    adata_emb_loc
         The location of the embeddings in adata.obsm or "X" if the embedding is in adata.X
-    ref_q_key : str
+    ref_q_key
         Key in adata.obs that contains reference/query labels
-    q_cat : str
+    q_cat
         Category label for query samples
-    r_cat : str
+    r_cat
         Category label for reference samples
-    sample_key : str
+    sample_key
         Key in adata.obs that contains sample identifiers
-    n_nhoods : int
+    n_nhoods
         Number of neighborhoods to analyze
-    k_min : int
+    k_min
         Minimum number of cells per neighborhood
-    k_max : int
+    k_max
         Maximum number of cells per neighborhood, if the neighborhood of size k_min does not fulfill
         filtering criteria.
-    min_n_cells : int, optional
+    min_n_cells
         Minimum number of cells required per sample, in a neighborhood. Default is 10.
-    min_n_samples_r : int, optional
+    min_n_samples_r
         Minimum number of reference samples (with at least min_n_cells cells) required per neighborhood. Default is 3.
-    exclude_same_study : bool, optional
+    exclude_same_study
         Whether to exclude samples from the same study when calculating distances
         between reference samples. To prevent bias in inter-sample distances within
         the reference, we recommend excluding inter-sample distances between samples
         from the same study, i.e. setting this argument to True. Default is True.
-    study_key : str, optional
+    study_key
         Key in adata.obs that contains study identifiers (needed if exclude_same_study is True)
-    grouping_key : str, optional
+    grouping_key
         Key in adata.obs that contains grouping information, which will be used to sample
         center cells (i.e. the centers of neighborhoods). If not provided, center cells will
         be sampled randomly from the query. If provided, center cells will be sampled based
         on query and reference cell proportions per group of the grouping key. This can be
         set to e.g. a clustering performed on the joint reference and query, or a (preliminary)
         cell type annotation of reference and query.
-    distance_metric : {"energy_distance", "pairwise_euclidean"}, optional
+    distance_metric
         Distance metric to use to calculate distances between samples (i.e. between
         two sets of cells). Default is "energy_distance".
-    seed : int, optional
+    seed
         Seed for random number generator. Set the seed to ensure reproducibility of results.
-    overwrite : bool, optional
+    overwrite
         Whether to overwrite existing mapqc_score and mapqc_filtering columns in adata.obs. Default is False.
-    return_nhood_info_df : bool, optional
+    return_nhood_info_df
         Whether to return a pandas DataFrame containing detailed neighborhood information.
         This can be useful for debugging, or for getting a detailed understanding of your
         neighborhoods and the mapqc output. Default is False.
-    return_sample_dists_to_ref_df : bool, optional
+    return_sample_dists_to_ref_df
         Whether to return a pandas DataFrame containing the sample distances to reference for each neighborhood. Default is False.
 
     Returns

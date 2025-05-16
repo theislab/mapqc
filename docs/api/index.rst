@@ -1,5 +1,5 @@
 API Reference
-============
+=============
 
 This section provides detailed documentation for the mapqc package API.
 

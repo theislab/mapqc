@@ -4,13 +4,13 @@ Evaluation module for mapqc package.
 This module provides functions for evaluating the performance of mapqc.
 """
 
+import anndata
 import pandas as pd
 import scanpy as sc
-from anndata import AnnData
 
 
 def evaluate(
-    adata: AnnData,
+    adata: anndata.AnnData,
     case_control_key: str,
     case_cats: list[str],
     control_cats: list[str],
@@ -20,16 +20,16 @@ def evaluate(
 
     Parameters
     ----------
-    adata: AnnData
+    adata
         AnnData object with mapQC output (i.e. mapqc.run() has been run)
-    case_control_key: str
+    case_control_key
         Column name in adata.obs that contains the case-control information
-    case_cats: list of str
+    case_cats
         Unique case categories, i.e. the non-control categories to be evaluated
         for the query cells only, as a list (e.g. ["IPF", "COPD"]). Each
         category will be evaluated separately. If only one category exists,
         still provide as a list (e.g. ["IPF"]).
-    control_cats: list of str
+    control_cats
         Unique control categories in adata.obs[case_control_key] for the query
         cells only, as a list (e.g. ["Control", "Control_2"]). These will be
         evaluated as one group. The controls are considered to be the same as

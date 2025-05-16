@@ -1,5 +1,5 @@
 Main Functions
-=============
+==============
 
 Core functionality of the mapqc package.
 
@@ -11,5 +11,5 @@ Core functionality of the mapqc package.
    :nosignatures:
    :recursive:
 
-   mapqc.run_mapqc
-   mapqc.evaluate
+   run_mapqc
+   evaluate
