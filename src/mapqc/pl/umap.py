@@ -61,7 +61,7 @@ def mapqc_scores(
         legend_elements = [
             plt.scatter([], [], c="black", marker="o", label="Not sampled"),
             plt.scatter([], [], c="darkolivegreen", marker="o", label="Filtered out"),
-            plt.scatter([], [], c=(0.5, 0.5, 0.5, 1.0), marker="o", label="Reference"),
+            plt.scatter([], [], color=(0.5, 0.5, 0.5, 1.0), marker="o", label="Reference"),
         ]
         fig.legend(
             handles=legend_elements,
