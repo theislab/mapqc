@@ -7,8 +7,6 @@ import pandas as pd
 import scanpy as sc
 from matplotlib.gridspec import GridSpec
 
-from ._plotting_utils import _translate_values_to_colors_rgba
-
 
 def mapqc_scores(
     adata: sc.AnnData,
@@ -44,6 +42,7 @@ def mapqc_scores(
     colors = _translate_values_to_colors_rgba(
         point_color_values=adata.obs.mapqc_score,
         point_ref_q_values=adata.obs[adata.uns["mapqc_params"]["ref_q_key"]],
+        r_cat=adata.uns["mapqc_params"]["r_cat"],
         point_filtering_values=adata.obs.mapqc_filtering,
         vmin=vmin,
         vmax=vmax,
@@ -60,8 +59,9 @@ def mapqc_scores(
 
         # Add legend at the top
         legend_elements = [
-            plt.scatter([], [], c="black", marker="o", label="not sampled"),
-            plt.scatter([], [], c="darkolivegreen", marker="o", label="filtered out"),
+            plt.scatter([], [], c="black", marker="o", label="Not sampled"),
+            plt.scatter([], [], c="darkolivegreen", marker="o", label="Filtered out"),
+            plt.scatter([], [], c=(0.5, 0.5, 0.5, 1.0), marker="o", label="Reference"),
         ]
         fig.legend(
             handles=legend_elements,
@@ -483,3 +483,39 @@ def _categorical_to_colors_rgba(
     value_to_color = {val: colors[idx] for val, idx in value_to_idx.items()}
 
     return rgba_colors, value_to_color
+
+
+def _translate_values_to_colors_rgba(
+    point_color_values,
+    point_ref_q_values,
+    r_cat,
+    point_filtering_values,
+    vmin,
+    vmax,
+    cmap_name,
+) -> np.ndarray:
+    cmap = plt.get_cmap(cmap_name)
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    colors = np.array(
+        [
+            _value_to_color(point, r_or_q, r_cat, f, cmap, norm)
+            for point, r_or_q, f in zip(
+                point_color_values,
+                point_ref_q_values,
+                point_filtering_values,
+                strict=False,
+            )
+        ]
+    )
+    return colors
+
+
+def _value_to_color(value, r_or_q, r_cat, filtering, cmap, norm):
+    if r_or_q == r_cat:
+        return (0.5, 0.5, 0.5, 1.0)  # Grey for reference
+    elif isinstance(value, float) and not np.isnan(value):
+        return cmap(norm(value))
+    elif filtering == "not sampled":
+        return mcolors.to_rgba("black")
+    else:
+        return mcolors.to_rgba("darkolivegreen")
