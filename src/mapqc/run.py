@@ -114,13 +114,23 @@ def run_mapqc(
     Returns
     -------
     None or pd.DataFrame or tuple
-        This function modifies the input AnnData object in-place by adding 'mapqc_score',
-        'mapqc_filtering', 'mapqc_nhood_filtering', 'mapqc_nhood_number', and 'mapqc_k'
+        This function modifies the input AnnData object in-place by adding:
+
+        * 'mapqc_score'
+        * 'mapqc_filtering'
+        * 'mapqc_nhood_filtering'
+        * 'mapqc_nhood_number'
+        * 'mapqc_k'
+
         columns to adata.obs. It furthermore adds a dictionary including the input parameter
         values to adata.uns['mapqc_params'].
-        If return_nhood_info_df is True, returns a pandas DataFrame containing detailed neighborhood information.
-        If return_sample_dists_to_ref_df is True, returns a pandas DataFrame containing the sample distances to reference.
-        If both are True, returns a tuple of (nhood_info_df, sample_dists_to_ref_df).
+
+        The return value depends on the input parameters:
+
+        * If return_nhood_info_df is True, returns a pandas DataFrame containing detailed neighborhood information.
+        * If return_sample_dists_to_ref_df is True, returns a pandas DataFrame containing the sample distances to reference.
+        * If both are True, returns a tuple of (nhood_info_df, sample_dists_to_ref_df).
+        * If neither is True, returns None.
     """
     # Create parameter object for internal use
     params = _MapQCParams(
@@ -144,13 +154,17 @@ def run_mapqc(
         overwrite=overwrite,
         return_nhood_info_df=return_nhood_info_df,
     )
-
     # validate input
     _validate_input_params(params)
     # now prepare run
-    center_cells = _sample_center_cells_by_group(
-        params=params,
-    )
+    if grouping_key is None:
+        # randomly sample center cells:
+        query_cells = adata.obs_names[adata.obs[ref_q_key] == q_cat]
+        center_cells = list(np.random.choice(query_cells, size=params.n_nhoods, replace=False))
+    else:
+        center_cells = _sample_center_cells_by_group(
+            params=params,
+        )
 
     samples_r = sorted(
         params.adata.obs.loc[params.adata.obs[params.ref_q_key] == params.r_cat, params.sample_key].unique().tolist()
