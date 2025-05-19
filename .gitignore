@@ -3,6 +3,9 @@
 *~
 buck-out/
 
+# Jupyter Notebook
+.ipynb_checkpoints/
+
 # IDEs
 /.idea/
 /.vscode/

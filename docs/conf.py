@@ -96,6 +96,7 @@ intersphinx_mapping = {
     "anndata": ("https://anndata.readthedocs.io/en/stable/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
 }
 
 # List of patterns, relative to source directory, that match files and
@@ -127,5 +128,15 @@ pygments_style = "default"
 nitpick_ignore = [
     # If building the documentation fails because of a missing link that is outside your control,
     # you can add an exception to this list.
-    #     ("py:class", "igraph.Graph"),
+    ("py:class", "igraph.Graph"),
+    ("py:class", "pandas.core.frame.DataFrame"),
+    ("py:class", "anndata.AnnData"),
+    ("py:class", "scanpy.AnnData"),
+    ("py:class", "sc.AnnData"),
+    ("py:class", "pd.DataFrame"),
+    ("py:class", "optional"),
+    ("py:class", "{"),
+    ("py:class", "}"),
+    ("py:class", '"energy_distance"'),
+    ("py:class", '"pairwise_euclidean"'),
 ]
