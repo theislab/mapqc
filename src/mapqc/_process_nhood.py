@@ -66,7 +66,7 @@ def _process_neighborhood(
     cell_df = adata_obs.iloc[cell_idc_by_dist[:(k_max_minus_margin)], :].loc[
         :, metadata_to_keep + [params.sample_key]
     ]  # we add 1 to include the center cell
-    sample_df = cell_df.groupby(params.sample_key, observed=False).agg({cat: "first" for cat in metadata_to_keep})
+    sample_df = cell_df.groupby(params.sample_key, observed=False).agg(dict.fromkeys(metadata_to_keep, "first"))
     # filter and adapt k if wanted and needed (note that k will automatically not be adapted if cell_df has n_rows=min_k)
     filter_pass, adapted_k, filter_info = _filter_and_get_adaptive_k(
         params=params,
