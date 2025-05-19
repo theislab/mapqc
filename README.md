@@ -10,7 +10,7 @@ A metric for the evaluation of single-cell query-to-reference mappings
 
 ## Getting started
 
-Please refer to the [documentation][], in particular, the [API documentation][]. A few notes on how and when to use MapQC.
+Please refer to the [documentation](https://mapqc.readthedocs.io/), in particular, the [API documentation](https://mapqc.readthedocs.io/en/latest/api/index.html). A few notes on how and when to use MapQC.
 
 ### What does mapQC do?
 
@@ -53,13 +53,11 @@ You need to have Python 3.10 or newer installed on your system.
 
 There are several alternative options to install mapqc:
 
-<!--
 1) Install the latest release of `mapqc` from [PyPI][]:
 
 ```bash
 pip install mapqc
 ```
--->
 
 1. Install the latest development version:
 
