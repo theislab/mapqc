@@ -1,5 +1,5 @@
 Boxplot
-=======
+-------
 
 .. currentmodule:: mapqc.pl.boxplot
 
