@@ -27,7 +27,7 @@ In short, you need one AnnData object, including:
 - Metadata (see below)
 - A mapping-derived embedding of both the reference and the query
 
-In the [quick-start tutorial notebook](./docs/notebooks/mapqc_quickstart.ipynb) we provide a more extensive description of the exact data requirements. 
+In the [quick-start tutorial notebook](./docs/notebooks/mapqc_quickstart.ipynb) we provide a more extensive description of the exact data requirements.
 
 
 ## Installation

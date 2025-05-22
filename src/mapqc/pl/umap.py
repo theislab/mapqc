@@ -1,11 +1,11 @@
 from ast import literal_eval
 
+import anndata
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scanpy as sc
-import anndata
 from matplotlib.gridspec import GridSpec
 
 

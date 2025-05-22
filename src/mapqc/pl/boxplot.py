@@ -1,12 +1,11 @@
 import random
 import warnings
 
+import anndata
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
 import seaborn as sns
-import anndata
 
 
 def sample_dists_to_ref_per_nhood(
