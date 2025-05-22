@@ -6,10 +6,11 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import seaborn as sns
+import anndata
 
 
 def sample_dists_to_ref_per_nhood(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     sample_dists_to_ref_df: pd.DataFrame,
     figsize: tuple[float, float] = (24, 8),
     boxplot_kwargs: dict = None,
@@ -21,11 +22,11 @@ def sample_dists_to_ref_per_nhood(
     return_fig: bool = False,
 ):
     """
-    Plot boxplot of sample distances to reference for each neighborhood, split by case/control status.
+    Boxplot of sample distances to reference per neighborhood, split by case/control status.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object. Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object.
     sample_dists_to_ref_df : pd.DataFrame
@@ -148,7 +149,7 @@ def sample_dists_to_ref_per_nhood(
 
 
 def mapqc_scores(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     grouping_key: str,
     group_order: list[str] = None,
     min_n_cells_per_box: int = 10,
@@ -162,11 +163,11 @@ def mapqc_scores(
     boxplot_kwargs: dict = None,
 ):
     """
-    Plot boxplot of MapQC scores for each group, split by case/control status.
+    Boxplot of MapQC scores according to a grouping key, split by case/control status.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object. Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object.
     grouping_key : str
@@ -333,7 +334,7 @@ def mapqc_scores(
 
 
 def _create_case_control_palette(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
 ):
     """Create a color palette for the case/control status."""
     case_cats = [cat for cat in adata.obs.case_control.unique() if cat.startswith("Case")]
@@ -350,7 +351,7 @@ def _create_case_control_palette(
 
 
 def _validate_grouping(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     grouping_key: str,
     group_order: list[str] = None,
 ):

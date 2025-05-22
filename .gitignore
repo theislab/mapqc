@@ -21,6 +21,7 @@ __pycache__/
 # Tests and coverage
 /data/
 /node_modules/
+/docs/notebooks/mapped_q_and_r.h5ad
 
 # docs
 /docs/generated/

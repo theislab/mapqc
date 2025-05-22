@@ -40,7 +40,7 @@ def run_mapqc(
     return_sample_dists_to_ref_df: bool = False,
 ) -> None | pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Main mapQC function: runs mapqc on an AnnData object and calculates mapQC scores for query cells.
+    Calculate mapQC scores.
 
     This function modifies the input AnnData object in-place by adding several new columns to adata.obs:
 

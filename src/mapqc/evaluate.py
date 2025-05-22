@@ -16,7 +16,7 @@ def evaluate(
     control_cats: list[str],
 ) -> dict:
     """
-    Evaluate and summarize mapQC output, including mapQC scores, filtering, and case-control-specific statistics.
+    Evaluate and summarize mapQC output.
 
     Parameters
     ----------

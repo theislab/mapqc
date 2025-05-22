@@ -1,4 +1,4 @@
-UMAP
+umap
 ====
 
 .. currentmodule:: mapqc.pl.umap

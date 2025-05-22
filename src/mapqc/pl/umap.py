@@ -5,11 +5,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import anndata
 from matplotlib.gridspec import GridSpec
 
 
 def mapqc_scores(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     vmin: float = -4,
     vmax: float = 4,
     figsize: tuple[float, float] = (6, 5),
@@ -17,11 +18,11 @@ def mapqc_scores(
     umap_kwargs: dict = None,
 ):
     """
-    Plot UMAP colored by MapQC scores, split by case/control status.
+    UMAP colored by MapQC scores, split by case/control status.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object with MapQC scores in adata.obs.mapqc_score. Both
         mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object, as well as sc.tl.umap().
@@ -84,17 +85,17 @@ def mapqc_scores(
 
 
 def mapqc_scores_binary(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     figsize: tuple[float, float] = (6, 5),
     return_fig: bool = False,
     umap_kwargs: dict = None,
 ):
     """
-    Plot UMAP colored by MapQC scores (binary, >2 or <=2), split by case/control status.
+    UMAP colored by MapQC scores (binary, >2 or <=2), split by case/control status.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object with MapQC scores in adata.obs.mapqc_score. Both
         mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object, as well as sc.tl.umap().
@@ -143,21 +144,21 @@ def mapqc_scores_binary(
 
 
 def neighborhood_filtering(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     figsize: tuple[float, float] = (6, 5),
     return_fig: bool = False,
     umap_kwargs: dict = None,
     dotsize: float = 1,
 ):
     """
-    Plot UMAP colored by neighborhood filtering status.
+    UMAP coloring neighborhood center cells by filtering status.
 
     UMAP shows neighborhood filtering for all center cells of the
     neighborhoods used for mapQC score calculation.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object with neighborhood filtering in adata.obs.mapqc_nhood_filtering.
         Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object, as well as sc.tl.umap().
@@ -201,7 +202,7 @@ def neighborhood_filtering(
 
 
 def neighborhood_center_cell(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     center_cell: str,
     figsize: tuple[float, float] = (6, 5),
     return_fig: bool = False,
@@ -209,11 +210,11 @@ def neighborhood_center_cell(
     dotsize: float = 1,
 ):
     """
-    Plot UMAP highlighting a single neighborhood center cell.
+    UMAP highlighting a single neighborhood center cell.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object. Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object, as well as sc.tl.umap().
     center_cell : str
@@ -253,7 +254,7 @@ def neighborhood_center_cell(
 
 
 def neighborhood_cells(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     center_cell: str,
     nhood_info_df: pd.DataFrame,
     color_by: str = None,
@@ -264,11 +265,11 @@ def neighborhood_cells(
     umap_kwargs: dict = None,
 ):
     """
-    Plot UMAP highlighting all cells in the neighborhood of a given center cell.
+    UMAP highlighting all cells in the neighborhood of a given center cell.
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object. Both mapqc.run_mapqc() and mapqc.evaluate() should have been run on
         the adata object, as well as sc.tl.umap().
     center_cell : str
@@ -338,7 +339,7 @@ def neighborhood_cells(
 
 
 def _umap_base(
-    adata: sc.AnnData,
+    adata: anndata.AnnData,
     colors: np.ndarray,
     figsize: tuple[float, float],
     umap_kwargs: dict = None,
@@ -351,7 +352,7 @@ def _umap_base(
 
     Parameters
     ----------
-    adata : sc.AnnData
+    adata : anndata.AnnData
         Anndata object with case_control annotation in adata.obs.case_control
     colors : np.ndarray
         Array of colors for each point
@@ -431,7 +432,7 @@ def _umap_base(
     return (fig, gs)
 
 
-def _check_center_cell(adata: sc.AnnData, center_cell: str):
+def _check_center_cell(adata: anndata.AnnData, center_cell: str):
     """Some checks to make sure the center cell is valid."""
     # check if center_cell is in adata.obs.index
     if center_cell not in adata.obs.index:

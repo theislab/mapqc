@@ -139,4 +139,5 @@ nitpick_ignore = [
     ("py:class", "}"),
     ("py:class", '"energy_distance"'),
     ("py:class", '"pairwise_euclidean"'),
+    ("myst", "./docs/notebooks/mapqc_quickstart.ipynb"),
 ]

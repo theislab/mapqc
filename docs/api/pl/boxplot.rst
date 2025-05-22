@@ -1,4 +1,4 @@
-Boxplot
+boxplot
 -------
 
 .. currentmodule:: mapqc.pl.boxplot

@@ -1,10 +1,7 @@
-Plotting
+plotting
 ========
-
-Module Reference
------------------
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    umap
    boxplot
