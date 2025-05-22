@@ -9,6 +9,7 @@ from typing import Literal
 import anndata
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from mapqc._center_cells._sampling import _sample_center_cells_by_group
 from mapqc._distances._normalized_distances import _get_normalized_dists_to_ref
@@ -38,6 +39,7 @@ def run_mapqc(
     overwrite: bool = False,
     return_nhood_info_df: bool = False,
     return_sample_dists_to_ref_df: bool = False,
+    verbose: bool = True,
 ) -> None | pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
     """
     Calculate mapQC scores.
@@ -110,6 +112,8 @@ def run_mapqc(
         neighborhoods and the mapqc output. Default is False.
     return_sample_dists_to_ref_df
         Whether to return a pandas DataFrame containing the sample distances to reference for each neighborhood. Default is False.
+    verbose
+        Whether to print progress messages. Default is True.
 
     Returns
     -------
@@ -181,7 +185,18 @@ def run_mapqc(
         fill_value=np.nan,
     )
 
-    for i, cell in enumerate(center_cells):
+    # Create progress iterator if verbose is True
+    center_cells_iter = (
+        tqdm(
+            center_cells,
+            desc="Processing neighborhoods",
+            ncols=80,  # Total width of the progress bar
+            bar_format="{desc}: {percentage:3.0f}%|{bar:20}| {n_fmt}/{total_fmt}",  # Shorter bar format
+        )
+        if verbose
+        else center_cells
+    )
+    for i, cell in enumerate(center_cells_iter):
         nhood_info.loc[cell], dists[:, :, i] = _process_neighborhood(params=params, center_cell=cell)
         nhood_info.loc[cell, "nhood_number"] = i
 
