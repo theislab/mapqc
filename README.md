@@ -24,7 +24,7 @@ MapQC evaluates the quality of a query-to-reference mapping, and outputs a cell-
 In short, you need one AnnData object, including:
 - A large scale reference, including only its healthy/control cells.
 - A mapped query dataset, with healthy/control cells (must-have) and case/perturbed cells (if you have them).
-- Metadata (see below)
+- Metadata (query/reference status, study, sample, and optionally clustering and cell type annotations)
 - A mapping-derived embedding of both the reference and the query
 
 In the [quick-start tutorial notebook](./docs/notebooks/mapqc_quickstart.ipynb) we provide a more extensive description of the exact data requirements.
