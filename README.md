@@ -10,7 +10,8 @@ A metric for the evaluation of single-cell query-to-reference mappings
 
 ## Getting started
 
-Please refer to the [documentation](https://mapqc.readthedocs.io/), in particular, the [API documentation](https://mapqc.readthedocs.io/en/latest/api/index.html). A few notes on how and when to use MapQC.
+Please refer to the [documentation](https://mapqc.readthedocs.io/), in particular, the [API documentation](https://mapqc.readthedocs.io/en/latest/api/index.html) for detailed package documentation. For reproduction of the results in the paper, check out the [mapQC reproducibility repository](https://github.com/theislab/mapqc_reproducibility). <br><br>
+Below a few notes on how and when to use MapQC:
 
 ### What does mapQC do?
 
@@ -25,7 +26,7 @@ In short, you need one AnnData object, including:
 - A large scale reference, including only its healthy/control cells.
 - A mapped query dataset, with healthy/control cells (must-have) and case/perturbed cells (if you have them).
 - Metadata (query/reference status, study, sample, and optionally clustering and cell type annotations)
-- A mapping-derived embedding of both the reference and the query
+- A mapping-derived embedding including both the reference and the query
 
 In the [quick-start tutorial notebook](./docs/notebooks/mapqc_quickstart.ipynb) we provide a more extensive description of the exact data requirements.
 
@@ -54,7 +55,7 @@ See the [changelog][].
 
 ## Contact
 
-For questions and help requests, submit an issue on the mapQC GitHub page.
+I am happy to hear any comments, suggestions, or even bugs that you run into. I would like to make this package run as smoothly as possible! So for any of these, submit an issue on the mapQC GitHub page and I will be glad to help.
 
 ## Citation
 
