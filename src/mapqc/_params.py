@@ -42,7 +42,7 @@ class _MapQCParams:
     overwrite: bool | None = None
     samples_r: list[str] | None = None
     samples_q: list[str] | None = None
-    return_nhood_info_df: bool | None = None
+    verbose: bool = True
 
     def __post_init__(self):
         # set adapt_k parameter

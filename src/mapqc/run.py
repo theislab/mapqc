@@ -16,7 +16,7 @@ from mapqc._distances._normalized_distances import _get_normalized_dists_to_ref
 from mapqc._mapqc_scores import _calculate_mapqc_scores
 from mapqc._params import _MapQCParams
 from mapqc._process_nhood import _process_neighborhood
-from mapqc._utils._validation import _validate_input_params
+from mapqc._utils._validation import _validate_input_params, _validate_return_parameters
 
 
 def run_mapqc(
@@ -156,10 +156,12 @@ def run_mapqc(
         distance_metric=distance_metric,
         seed=seed,
         overwrite=overwrite,
-        return_nhood_info_df=return_nhood_info_df,
+        verbose=verbose,
     )
     # validate input
     _validate_input_params(params)
+    # validate return parameters:
+    _validate_return_parameters(return_nhood_info_df, return_sample_dists_to_ref_df)
     # now prepare run
     if grouping_key is None:
         # randomly sample center cells:
@@ -232,6 +234,7 @@ def run_mapqc(
         "samples_r",
         "samples_q",
         "return_nhood_info_df",
+        "verbose",
     ]
     params.adata.uns["mapqc_params"] = {k: v for k, v in params.__dict__.items() if k not in params_to_leave_out}
 
