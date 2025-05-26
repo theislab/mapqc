@@ -14,8 +14,8 @@ def _validate_input_params(params: _MapQCParams):
     """Validate input parameters"""
     _check_adata(params.adata, params.adata_emb_loc)
     _check_ref_q_arguments(params.adata, params.ref_q_key, params.q_cat, params.r_cat)
-    _check_sample_information(params.adata, params.sample_key, params.ref_q_key)
-    _check_study_arguments(params.adata, params.study_key, params.exclude_same_study)
+    _check_sample_information(params.adata, params.sample_key, params.ref_q_key, params.r_cat)
+    _check_study_arguments(params.adata, params.study_key, params.exclude_same_study, params.ref_q_key, params.r_cat)
     _check_n_nhoods(params.adata, params.n_nhoods, params.ref_q_key, params.q_cat)
     _check_k_arguments(
         params.adata,
@@ -30,7 +30,7 @@ def _validate_input_params(params: _MapQCParams):
     _check_distance_metric(params.distance_metric)
     _check_seed(params.seed)
     _check_overwrite(params.overwrite, params.adata)
-    _check_return_nhood_info_df(params.return_nhood_info_df)
+    _check_verbose(params.verbose)
 
 
 def _check_adata(adata, adata_emb_loc):
@@ -81,7 +81,7 @@ def _check_ref_q_arguments(adata, ref_q_key, q_cat, r_cat):
         )
 
 
-def _check_sample_information(adata, sample_key, ref_q_key):
+def _check_sample_information(adata, sample_key, ref_q_key, r_cat):
     """Check if sample_key is valid"""
     if not isinstance(sample_key, str):
         raise ValueError(
@@ -93,9 +93,20 @@ def _check_sample_information(adata, sample_key, ref_q_key):
         raise ValueError("The values in your sample_key adata.obs columnmust not contain any null values.")
     if (adata.obs.groupby(sample_key, observed=True).agg({ref_q_key: "nunique"}).values > 1).any():
         raise ValueError("Each sample must have only one unique value of ref_q_key.")
+    # check how many reference samples are present in the data:
+    n_ref_samples = adata.obs.groupby(ref_q_key, observed=True).agg({sample_key: "nunique"}).loc[r_cat].values[0]
+    if n_ref_samples < 3:
+        raise ValueError(
+            "You have only {n_ref_samples} reference samples in your data. You need at least 3 to be able to run mapQC."
+        )
+    elif n_ref_samples < 10:
+        warnings.warn(
+            f"You have only {n_ref_samples} reference samples in your data. Note that mapQC is meant to be used on mappings to large references, and its assumptions are unlikely to hold.",
+            stacklevel=4,
+        )
 
 
-def _check_study_arguments(adata, study_key, exclude_same_study):
+def _check_study_arguments(adata, study_key, exclude_same_study, ref_q_key, r_cat):
     """Check if study_key and exclude_same_study are valid"""
     if not isinstance(exclude_same_study, bool):
         raise ValueError("exclude_same_study must be a boolean.")
@@ -114,6 +125,18 @@ def _check_study_arguments(adata, study_key, exclude_same_study):
             raise ValueError("study_key must be a column in adata.obs.")
         if pd.isnull(adata.obs[study_key]).any() or (adata.obs[study_key] == "nan").any():
             raise ValueError("The values in your study_key adata.obs column must not contain any null values.")
+        # check number of reference studies:
+        n_ref_studies = adata.obs.groupby(ref_q_key, observed=True).agg({study_key: "nunique"}).loc[r_cat].values[0]
+        if n_ref_studies < 3:
+            warnings.warn(
+                f"You have only {n_ref_studies} reference studies in your data. Note that mapQC is meant to be used on mappings to large references, and its assumptions might not hold in your context.",
+                stacklevel=4,
+            )
+            if exclude_same_study:
+                warnings.warn(
+                    "Given your low number of reference studies, we recommend setting the exclude_same_study argument to False.",
+                    stacklevel=4,
+                )
 
 
 def _check_n_nhoods(adata, n_nhoods, ref_q_key, q_cat):
@@ -213,7 +236,15 @@ def _check_overwrite(overwrite, adata):
             )
 
 
-def _check_return_nhood_info_df(return_nhood_info_df):
-    """Check if return_nhood_info_df is valid"""
+def _check_verbose(verbose):
+    """Check if verbose is valid"""
+    if not isinstance(verbose, bool):
+        raise ValueError("verbose must be a boolean.")
+
+
+def _validate_return_parameters(return_nhood_info_df, return_sample_dists_to_ref_df):
+    """Check if return_nhood_info_df and return_sample_dists_to_ref_df are valid"""
     if not isinstance(return_nhood_info_df, bool):
         raise ValueError("return_nhood_info_df must be a boolean.")
+    if not isinstance(return_sample_dists_to_ref_df, bool):
+        raise ValueError("return_sample_dists_to_ref_df must be a boolean.")

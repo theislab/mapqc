@@ -73,6 +73,10 @@ def evaluate(
     perc_nhoods_pass = round(n_nhoods_pass / n_nhoods_total * 100, 1)
     stats["perc_nhoods_pass"] = perc_nhoods_pass
     print(f"{perc_nhoods_pass}% of neighborhoods passed filtering ({n_nhoods_pass} out of {n_nhoods_total}).")
+    if perc_nhoods_pass < 50:
+        print(
+            "For more details on filtering, run mapqc.pl.umap.neighborhood_filtering(adata), or set return_nhood_info_df=True when running mapQC, and check out your nhood_info_df."
+        )
     if perc_nhoods_pass == 0:
         print(
             "Try running with a larger k_min and/or k_max, looser filtering thresholds, and/or a larger number of neighborhoods."
