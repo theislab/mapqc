@@ -11,7 +11,7 @@ A metric for the evaluation of single-cell query-to-reference mappings
 ## Getting started
 
 Please refer to the [documentation](https://mapqc.readthedocs.io/), in particular, the [API documentation](https://mapqc.readthedocs.io/en/latest/api/index.html) for detailed package documentation. For reproduction of the results in the paper, check out the [mapQC reproducibility repository](https://github.com/theislab/mapqc_reproducibility). <br><br>
-Below a few notes on how and when to use MapQC:
+Below a few notes on how and when to use mapQC:
 
 ### What does mapQC do?
 
@@ -35,7 +35,7 @@ In the [quick-start tutorial notebook](./docs/notebooks/mapqc_quickstart.ipynb) 
 
 You need to have Python 3.10 or newer installed on your system.
 
-There are several alternative options to install mapqc:
+There are several alternative options to install mapQC:
 
 1) Install the latest release of `mapqc` from [PyPI][]:
 
@@ -59,7 +59,7 @@ I am happy to hear any comments, suggestions, or even bugs that you run into. I 
 
 ## Citation
 
-> t.b.a
+[Sikkema et al.](https://www.biorxiv.org/content/10.1101/2025.05.23.655749v1), bioRxiv 2025.
 
 [mambaforge]: https://github.com/conda-forge/miniforge#mambaforge
 [scverse discourse]: https://discourse.scverse.org/
