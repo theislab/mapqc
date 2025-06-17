@@ -14,3 +14,6 @@ and this project adheres to [Semantic Versioning][].
 - update documentation and simplify readthedocs API
 - add verbose argument and progress bar for mapqc.run_mapqc()
 - add warnings with low number of reference studies and samples
+
+### 0.1.1 <small>2025-06-17</small>
+- fix formatting bug in tutorial notebook "mapqc_detailed.ipynb"
