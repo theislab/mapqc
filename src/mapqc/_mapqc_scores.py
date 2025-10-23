@@ -20,7 +20,8 @@ def _calculate_mapqc_scores(
         MapQC parameters object.
     sample_dist_to_ref_per_nhood: np.ndarray
         Array of shape (n_samples_r + n_samples_q, n_nhoods, n_cells_q) containing
-        the normalized distance of each sample to the reference for each neighborhood.
+        the normalized distance of each sample to the reference for each neighborhood,
+        separated by/repeated for each cell.
     nhood_info_df: pd.DataFrame
         DataFrame containing information about each neighborhood, taken from the output
         of process_nhood.
@@ -53,8 +54,25 @@ def _calculate_mapqc_scores(
     # mean distance to the reference. These are the mapQC scores!
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message="Mean of empty slice")
-        mapqc_scores = np.nanmean(sample_dist_to_ref_per_nhood_masked, axis=(0, 1))
-    # store filtering information for cells without value (set rest to 'pass')
+        weigh_neighborhoods_equally = False
+        if weigh_neighborhoods_equally:
+            mapqc_scores = np.nanmean(sample_dist_to_ref_per_nhood_masked, axis=(0, 1))
+        else:
+            n_cells_per_sample_per_nhood = full_mask.sum(axis=2)  # shape: (n_samples_q, n_nhoods)
+            weights = np.where(
+                full_mask, n_cells_per_sample_per_nhood[:, :, np.newaxis], np.nan
+            )  # shape: (n_samples_q, n_nhoods, n_cells), broadcast over cells
+            cells_per_sample_across_cells_nhoods = np.nansum(
+                weights, axis=1, keepdims=True
+            )  # shape (n_samples_q, 1, n_cells)
+            weights = weights / cells_per_sample_across_cells_nhoods
+            # now multiply the distances-to-the-reference with the weights, element-wise
+            weighted_sample_dist_to_ref_per_nhood = sample_dist_to_ref_per_nhood_masked * weights
+            # and take the same to get the mapqc scores:
+            mapqc_scores = np.nansum(weighted_sample_dist_to_ref_per_nhood, axis=(0, 1))
+            # set cells that do not have any neighborhoods with enough cells of its sample to nan:
+            mapqc_scores = np.where(np.nansum(weights, axis=(0, 1)) == 0, np.nan, mapqc_scores)
+
     cell_filtering_info = _get_per_cell_filtering_info(mapqc_scores, nhood_mask, nhood_info_df)
     # return mapqc scores and filtering info
     return mapqc_scores, cell_filtering_info
