@@ -2,14 +2,14 @@
 
 ```
 
+
 ```{toctree}
 :hidden: true
-:maxdepth: 1
+:maxdepth: 2
 
-api.md
+api/index
+notebooks/index.md
 changelog.md
 contributing.md
 references.md
-
-notebooks/example
 ```

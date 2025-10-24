@@ -3,6 +3,9 @@
 *~
 buck-out/
 
+# Jupyter Notebook
+.ipynb_checkpoints/
+
 # IDEs
 /.idea/
 /.vscode/
@@ -19,6 +22,7 @@ __pycache__/
 /data/
 /node_modules/
 /.coverage*
+/docs/notebooks/mapped_q_and_r.h5ad
 
 # docs
 /docs/generated/
