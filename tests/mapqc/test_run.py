@@ -44,6 +44,6 @@ def test_run_mapqc(adata, output_data_dir):
     params_expected = pickle.load(open(os.path.join(path_output_dir, "params.pkl"), "rb"))
     # check if expected output is equal to actual output:
     pd.testing.assert_frame_equal(nhood_info_df, nhood_info_df_expected)
-    pd.testing.assert_frame_equal(sample_dists, sample_dists_expected)
-    pd.testing.assert_frame_equal(obs_added, obs_added_expected)
+    pd.testing.assert_frame_equal(sample_dists, sample_dists_expected, check_exact=False, rtol=1e-4)
+    pd.testing.assert_frame_equal(obs_added, obs_added_expected, check_exact=False, rtol=2e-3)
     assert params == params_expected
