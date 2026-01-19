@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "mapqc"
-version = "0.0.1"
+version = "0.1.1"
 description = "A metric for the evaluation of single-cell query-to-reference mappings"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -23,7 +23,8 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-  "anndata",
+  "scanpy",
+  "scikit-learn",
   # for debug logging (referenced from the issue template)
   "session-info2",
 ]
