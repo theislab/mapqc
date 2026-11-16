@@ -37,7 +37,7 @@ You need to have Python 3.10 or newer installed on your system.
 
 There are several alternative options to install mapQC:
 
-1) Install the latest release of `mapqc` from [PyPI][]:
+1. Install the latest release of `mapqc` from [PyPI][]:
 
 ```bash
 pip install mapqc
