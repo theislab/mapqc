@@ -23,6 +23,7 @@ MapQC evaluates the quality of a query-to-reference mapping, and outputs a cell-
 ### What are the data requirements for using mapQC?
 
 In short, you need one AnnData object, including:
+
 - A large scale reference, including only its healthy/control cells.
 - A mapped query dataset, with healthy/control cells (must-have) and case/perturbed cells (if you have them).
 - Metadata (query/reference status, study, sample, and optionally clustering and cell type annotations)
@@ -30,14 +31,13 @@ In short, you need one AnnData object, including:
 
 In the [quick-start tutorial notebook](./docs/notebooks/mapqc_quickstart.ipynb) we provide a more extensive description of the exact data requirements.
 
-
 ## Installation
 
 You need to have Python 3.10 or newer installed on your system.
 
 There are several alternative options to install mapQC:
 
-1) Install the latest release of `mapqc` from [PyPI][]:
+1. Install the latest release of `mapqc` from [PyPI][]:
 
 ```bash
 pip install mapqc
